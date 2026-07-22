@@ -1,0 +1,200 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('history') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Historique complet des sessions de stationnement</p>
+</div>
+
+<!-- ======= SUMMARY STATS ======= -->
+{% if stats %}
+<div class="stats-grid" style="margin-bottom: 24px; grid-template-columns: repeat(3,1fr);">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#6366f1,#818cf8);">
+            <i class="fa-solid fa-database"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-label">Total sessions</span>
+            <span class="stat-value">{{ stats.total_sessions or 0 }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#34d399);">
+            <i class="fa-solid fa-check-double"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-label">Sorties complètes</span>
+            <span class="stat-value">{{ stats.total_exited or 0 }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);">
+            <i class="fa-solid fa-coins"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-label">Revenus totaux</span>
+            <span class="stat-value">{{ "%.2f"|format(stats.total_revenue or 0) }}</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ======= FILTERS ======= -->
+<div class="panel-card" style="margin-bottom: 20px;">
+    <form action="/parking/history" method="GET">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto auto; gap:12px; align-items:flex-end;">
+            <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Du</label>
+                <input type="date" name="date_from" value="{{ date_from }}"
+                       style="width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;box-sizing:border-box;">
+            </div>
+            <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Au</label>
+                <input type="date" name="date_to" value="{{ date_to }}"
+                       style="width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;box-sizing:border-box;">
+            </div>
+            <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Zone</label>
+                <select name="zone_id" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;cursor:pointer;">
+                    <option value="">Toutes les zones</option>
+                    {% for z in zones %}
+                        <option value="{{ z.id }}" {% if zone_id == z.id|string %}selected{% endif %}>{{ z.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Statut</label>
+                <select name="status" style="width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;cursor:pointer;">
+                    <option value="">Tous</option>
+                    <option value="INSIDE"  {% if status=='INSIDE'  %}selected{% endif %}>En cours</option>
+                    <option value="EXITED"  {% if status=='EXITED'  %}selected{% endif %}>Sorti</option>
+                </select>
+            </div>
+            <button type="submit" class="login-btn" style="background-color:#2563eb;padding:9px 20px;height:fit-content;white-space:nowrap;">
+                <i class="fa-solid fa-filter"></i> Filtrer
+            </button>
+            <a href="/parking/history?{{ request.query_string.decode() }}&export=csv"
+               class="login-btn" style="background-color:#10b981;padding:9px 16px;text-decoration:none;white-space:nowrap;">
+                <i class="fa-solid fa-file-csv"></i> CSV
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- ======= HISTORY TABLE ======= -->
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title"><i class="fa-solid fa-clock-rotate-left text-primary"></i> Sessions ({{ total_count }} au total)</h3>
+        <button onclick="window.print()" style="border:1px solid #e2e8f0;background:white;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px;color:#475569;">
+            <i class="fa-solid fa-print"></i> Imprimer
+        </button>
+    </div>
+
+    {% if sessions %}
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Matricule</th>
+                    <th>Propriétaire</th>
+                    <th>Zone / Place</th>
+                    <th>Type</th>
+                    <th>Entrée</th>
+                    <th>Sortie</th>
+                    <th style="text-align:center;">Durée</th>
+                    <th style="text-align:center;">Prix</th>
+                    <th style="text-align:center;">Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td style="font-weight:700;color:#1e3a8a;font-size:13px;">TK-{{ "%06d"|format(s.id) }}</td>
+                    <td style="font-weight:700;color:#b45309;">{{ s.matricule }}</td>
+                    <td>
+                        <div style="font-weight:600;color:#0f172a;">{{ s.owner_name or 'Inconnu' }}</div>
+                        <div style="font-size:11px;color:#64748b;">{{ s.brand_name or '' }} {{ s.color_name or '' }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">{{ s.zone_name }}</div>
+                        <div style="font-size:11px;color:#2563eb;font-weight:700;">{{ s.place_number }}</div>
+                    </td>
+                    <td style="font-size:12px;color:#475569;">{{ s.ptype_name }}</td>
+                    <td style="font-size:12px;color:#475569;">{{ s.entry_datetime }}</td>
+                    <td style="font-size:12px;color:#475569;">{{ s.exit_datetime or '—' }}</td>
+                    <td style="text-align:center;font-size:13px;">
+                        {% if s.duration_hours %}
+                            {{ "%.1f"|format(s.duration_hours) }}h
+                        {% else %}—{% endif %}
+                    </td>
+                    <td style="text-align:center;font-weight:700;color:#0f172a;">
+                        {% if s.total_price %}{{ "%.2f"|format(s.total_price) }}{% else %}—{% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if s.session_status == 'INSIDE' %}
+                            <span class="badge-status badge-danger" style="font-size:11px;">En cours</span>
+                        {% else %}
+                            <span class="badge-status badge-success" style="font-size:11px;">Sorti</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ======= PAGINATION ======= -->
+    {% if total_pages > 1 %}
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:20px; flex-wrap:wrap; gap:10px;">
+        <span style="font-size:13px;color:#64748b;">
+            Page {{ page }} / {{ total_pages }} · {{ total_count }} enregistrements
+        </span>
+        <div style="display:flex;gap:6px;">
+            {% if page > 1 %}
+            <a href="?page={{ page-1 }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&zone_id={{ zone_id }}"
+               style="padding:7px 14px;background:#f1f5f9;border-radius:8px;text-decoration:none;color:#334155;font-size:13px;font-weight:600;">
+                ← Préc.
+            </a>
+            {% endif %}
+
+            {% for p in range(1, total_pages+1) %}
+                {% if p == page %}
+                    <span style="padding:7px 14px;background:#2563eb;color:white;border-radius:8px;font-size:13px;font-weight:700;">{{ p }}</span>
+                {% elif p <= 3 or p > total_pages-3 or (p >= page-1 and p <= page+1) %}
+                    <a href="?page={{ p }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&zone_id={{ zone_id }}"
+                       style="padding:7px 14px;background:#f1f5f9;border-radius:8px;text-decoration:none;color:#334155;font-size:13px;font-weight:600;">{{ p }}</a>
+                {% elif p == 4 or p == total_pages-3 %}
+                    <span style="padding:7px 6px;color:#94a3b8;">…</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if page < total_pages %}
+            <a href="?page={{ page+1 }}&date_from={{ date_from }}&date_to={{ date_to }}&status={{ status }}&zone_id={{ zone_id }}"
+               style="padding:7px 14px;background:#f1f5f9;border-radius:8px;text-decoration:none;color:#334155;font-size:13px;font-weight:600;">
+                Suiv. →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="text-align:center;padding:50px 20px;color:#94a3b8;">
+        <i class="fa-solid fa-clock-rotate-left" style="font-size:44px;margin-bottom:14px;opacity:0.35;"></i>
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:6px;">Aucune session trouvée</h3>
+        <p style="font-size:13px;">Modifiez les filtres ou attendez les premières entrées.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    @media print {
+        .sidebar, .topbar, form, .panel-header button, a.login-btn { display: none !important; }
+        .main-content { margin: 0 !important; padding: 0 !important; }
+    }
+</style>
+{% endblock %}

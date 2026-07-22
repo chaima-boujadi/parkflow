@@ -1,0 +1,217 @@
+{% extends "layout.html" %}
+
+{% block extra_css %}
+<style>
+    .shift-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 4000;
+        align-items: center;
+        justify-content: center;
+    }
+    .shift-modal-content {
+        background: white;
+        border-radius: 16px;
+        width: 440px;
+        padding: 24px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 5px;
+    }
+    .form-control {
+        width: 100%;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 13.5px;
+        box-sizing: border-box;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('shifts') }}</h1>
+        <p style="font-size: 14px; color: #64748b;">Planifier les rotations, affecter les horaires et valider les absences.</p>
+    </div>
+    <button onclick="openAddShiftModal()" class="tab-btn" style="background-color: #2563eb; color: white; border: none; padding: 8px 16px; display: flex; align-items: center; gap: 6px; border-radius: 10px; font-weight: 600; font-size: 13px;">
+        <i class="fa-solid fa-calendar-plus"></i> Planifier un Shift
+    </button>
+</div>
+
+<!-- SHIFTS SCHEDULE LIST -->
+<div class="panel-card" style="padding: 0; overflow: hidden;">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+            <thead>
+                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #64748b;">
+                    <th style="padding: 14px 16px;">Agent / Gardien</th>
+                    <th style="padding: 14px 16px;">Date du shift</th>
+                    <th style="padding: 14px 16px;">Heure Début</th>
+                    <th style="padding: 14px 16px;">Heure Fin</th>
+                    <th style="padding: 14px 16px;">Statut</th>
+                    <th style="padding: 14px 16px; text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in shifts %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px 16px; font-weight: 700; color: #1e293b;">{{ s.guard_name }}</td>
+                    <td style="padding: 12px 16px; color: #475569; font-weight: 600;">{{ s.shift_date }}</td>
+                    <td style="padding: 12px 16px; color: #64748b;">{{ s.start_time }}</td>
+                    <td style="padding: 12px 16px; color: #64748b;">{{ s.end_time }}</td>
+                    <td style="padding: 12px 16px;">
+                        {% if s.status == 'EN_SERVICE' %}
+                        <span class="badge-status badge-success" style="font-size: 11px;">EN SERVICE</span>
+                        {% elif s.status == 'CONGE' %}
+                        <span class="badge-status badge-info" style="font-size: 11px;">CONGÉ</span>
+                        {% else %}
+                        <span class="badge-status badge-danger" style="font-size: 11px;">ABSENT</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; text-align: right;">
+                        <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                            <button onclick="openEditShiftModal('{{ s.id }}', '{{ s.shift_date }}', '{{ s.start_time }}', '{{ s.end_time }}', '{{ s.status }}')" 
+                                    class="tab-btn" 
+                                    style="padding: 4px 8px; font-size: 11px; border-radius: 6px; color: #475569;">
+                                <i class="fa-solid fa-pen"></i> Modifier
+                            </button>
+                            <a href="/users/shifts/delete/{{ s.id }}" 
+                               class="tab-btn" 
+                               style="padding: 4px 8px; font-size: 11px; border-radius: 6px; border-color: #fecaca; color: #dc2626; text-decoration: none;" 
+                               onclick="return confirm('Annuler cette planification ?')">
+                                <i class="fa-solid fa-calendar-xmark"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">Aucune planification de shift enregistrée pour cette période.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ==========================================
+  MODALS FOR SHIFTS SCHEDULING
+========================================== -->
+<!-- Add Shift Modal -->
+<div id="addShiftModal" class="shift-modal">
+    <div class="shift-modal-content">
+        <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Planifier un Shift</h3>
+        <form action="/users/shifts" method="POST">
+            <div class="form-group">
+                <label>Sélectionner l'Agent</label>
+                <select name="guard_id" class="form-control" required>
+                    <option value="">Choisir un gardien...</option>
+                    {% for g in guards %}
+                    <option value="{{ g.id }}">{{ g.fullname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="shift_date" class="form-control" required>
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Heure Début</label>
+                    <input type="time" name="start_time" class="form-control" required value="08:00">
+                </div>
+                <div>
+                    <label>Heure Fin</label>
+                    <input type="time" name="end_time" class="form-control" required value="16:00">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Statut</label>
+                <select name="status" class="form-control">
+                    <option value="EN_SERVICE">EN SERVICE</option>
+                    <option value="CONGE">CONGÉ / REPOS</option>
+                    <option value="ABSENT">ABSENT</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeAddShiftModal()" class="tab-btn" style="border-color: #cbd5e1; color: #475569; padding: 8px 16px;">Annuler</button>
+                <button type="submit" class="login-btn" style="background-color: #2563eb; width: auto; padding: 8px 16px;">Planifier</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Shift Modal -->
+<div id="editShiftModal" class="shift-modal">
+    <div class="shift-modal-content">
+        <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Modifier la Planification</h3>
+        <form id="edit-shift-form" action="" method="POST">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="shift_date" id="edit-shift-date" class="form-control" required>
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Heure Début</label>
+                    <input type="time" name="start_time" id="edit-shift-start" class="form-control" required>
+                </div>
+                <div>
+                    <label>Heure Fin</label>
+                    <input type="time" name="end_time" id="edit-shift-end" class="form-control" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Statut</label>
+                <select name="status" id="edit-shift-status" class="form-control">
+                    <option value="EN_SERVICE">EN SERVICE</option>
+                    <option value="CONGE">CONGÉ / REPOS</option>
+                    <option value="ABSENT">ABSENT</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeEditShiftModal()" class="tab-btn" style="border-color: #cbd5e1; color: #475569; padding: 8px 16px;">Annuler</button>
+                <button type="submit" class="login-btn" style="background-color: #2563eb; width: auto; padding: 8px 16px;">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openAddShiftModal() {
+        document.getElementById('addShiftModal').style.display = 'flex';
+    }
+    function closeAddShiftModal() {
+        document.getElementById('addShiftModal').style.display = 'none';
+    }
+    
+    function openEditShiftModal(id, date, start, end, status) {
+        const form = document.getElementById('edit-shift-form');
+        form.action = `/users/shifts/edit/${id}`;
+        
+        document.getElementById('edit-shift-date').value = date;
+        document.getElementById('edit-shift-start').value = start;
+        document.getElementById('edit-shift-end').value = end;
+        document.getElementById('edit-shift-status').value = status;
+        
+        document.getElementById('editShiftModal').style.display = 'flex';
+    }
+    function closeEditShiftModal() {
+        document.getElementById('editShiftModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

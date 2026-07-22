@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}" dir="{{ 'rtl' if current_lang == 'ar' else 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkFlow | {{ t('smart_parking') }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="brand-logo">
+                <span class="brand-text">ParkFlow</span>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <ul>
+                    <li>
+                        <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+                            <i class="fa-solid fa-gauge"></i> <span>{{ t('dashboard') }}</span>
+                        </a>
+                    </li>
+                    <li class="menu-header"><span>{{ t('entry') }}/{{ t('exit') }}</span></li>
+                    <li>
+                        <a href="/parking/entry" class="nav-link {% if request.path == '/parking/entry' %}active{% endif %}">
+                            <i class="fa-solid fa-right-to-bracket"></i> <span>{{ t('entry') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/parking/exit" class="nav-link {% if request.path == '/parking/exit' %}active{% endif %}">
+                            <i class="fa-solid fa-right-from-bracket"></i> <span>{{ t('exit') }}</span>
+                        </a>
+                    </li>
+                    <li class="menu-header"><span>{{ t('vehicles') }}</span></li>
+                    <li>
+                        <a href="/vehicles" class="nav-link {% if request.path == '/vehicles' %}active{% endif %}">
+                            <i class="fa-solid fa-car"></i> <span>{{ t('vehicles') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/vehicles/brands" class="nav-link {% if request.path == '/vehicles/brands' %}active{% endif %}">
+                            <i class="fa-solid fa-copyright"></i> <span>{{ t('brands') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/vehicles/colors" class="nav-link {% if request.path == '/vehicles/colors' %}active{% endif %}">
+                            <i class="fa-solid fa-palette"></i> <span>{{ t('colors') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/vehicles/types" class="nav-link {% if request.path == '/vehicles/types' %}active{% endif %}">
+                            <i class="fa-solid fa-list-ul"></i> <span>{{ t('types') }}</span>
+                        </a>
+                    </li>
+                    <li class="menu-header"><span>{{ t('places') }}</span></li>
+                    <li>
+                        <a href="/parking-management/zones" class="nav-link {% if request.path == '/parking-management/zones' %}active{% endif %}">
+                            <i class="fa-solid fa-layer-group"></i> <span>{{ t('zones') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/parking-management/places" class="nav-link {% if request.path == '/parking-management/places' %}active{% endif %}">
+                            <i class="fa-solid fa-square-parking"></i> <span>{{ t('places') }}</span>
+                        </a>
+                    </li>
+                    <li class="menu-header"><span>{{ t('search') }} & {{ t('reports') }}</span></li>
+                    <li>
+                        <a href="/parking/search" class="nav-link {% if request.path == '/parking/search' %}active{% endif %}">
+                            <i class="fa-solid fa-magnifying-glass"></i> <span>{{ t('search') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/parking/history" class="nav-link {% if request.path == '/parking/history' %}active{% endif %}">
+                            <i class="fa-solid fa-history"></i> <span>{{ t('history') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/reports" class="nav-link {% if request.path == '/reports' %}active{% endif %}">
+                            <i class="fa-solid fa-chart-line"></i> <span>{{ t('reports') }}</span>
+                        </a>
+                    </li>
+                    <li class="menu-header"><span>Administration</span></li>
+                    <li>
+                        <a href="/users" class="nav-link {% if request.path == '/users' %}active{% endif %}">
+                            <i class="fa-solid fa-users-gear"></i> <span>{{ t('users') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/users/guards" class="nav-link {% if request.path == '/users/guards' %}active{% endif %}">
+                            <i class="fa-solid fa-user-shield"></i> <span>{{ t('guards') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/users/shifts" class="nav-link {% if request.path == '/users/shifts' %}active{% endif %}">
+                            <i class="fa-solid fa-calendar-days"></i> <span>{{ t('shifts') }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}">
+                            <i class="fa-solid fa-gears"></i> <span>{{ t('settings') }}</span>
+                        </a>
+                    </li>
+                    <li class="logout-item" style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">
+                        <a href="/logout" class="nav-link" style="color: #f87171;">
+                            <i class="fa-solid fa-sign-out-alt"></i> <span>{{ t('logout') }}</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-wrapper">
+            
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="toggle-sidebar-btn" id="toggle-sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <span class="airport-title">
+                        <i class="fa-solid fa-plane-departure text-primary"></i> 
+                        {{ t('airport_title') }}
+                    </span>
+                </div>
+                
+                <div class="topbar-right">
+                    
+                    <div class="language-dropdown">
+                        <button class="topbar-btn" id="lang-menu-btn">
+                            <i class="fa-solid fa-globe"></i> <span>{{ current_lang | upper }}</span>
+                        </button>
+                        <div class="dropdown-menu" id="lang-dropdown">
+                            <a href="/set-language/en" class="dropdown-item {% if current_lang == 'en' %}active{% endif %}">🇬🇧 English</a>
+                            <a href="/set-language/fr" class="dropdown-item {% if current_lang == 'fr' %}active{% endif %}">🇫🇷 Français</a>
+                            <a href="/set-language/ar" class="dropdown-item {% if current_lang == 'ar' %}active{% endif %}">🇲🇦 العربية</a>
+                        </div>
+                    </div>
+
+                    <div class="notifications-dropdown">
+                        <button class="topbar-btn" id="noti-menu-btn">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="badge">1</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-large" id="noti-dropdown">
+                            <div class="dropdown-header">
+                                <span>{{ t('notifications') }}</span>
+                                <a href="#" class="text-primary" style="font-size: 11px;">Clear All</a>
+                            </div>
+                            <div class="dropdown-body">
+                                <a href="#" class="dropdown-item noti-item success">
+                                    <div class="noti-icon"><i class="fa-solid fa-circle-check"></i></div>
+                                    <div class="noti-text">
+                                        <p class="noti-msg">Système opérationnel</p>
+                                        <span class="noti-time">A l'instant</span>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="user-dropdown">
+                        <button class="topbar-btn user-profile-btn" id="user-menu-btn">
+                            <img src="{{ url_for('static', filename='images/' + (session['photo'] if session and 'photo' in session else 'default_avatar.png')) }}" alt="Avatar" class="user-avatar" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                            <div class="user-details">
+                                <span class="user-name">{{ session.get('fullname', 'Admin') }}</span>
+                                <span class="user-role">{{ session.get('role', 'ADMIN') }}</span>
+                            </div>
+                        </button>
+                        <div class="dropdown-menu" id="user-dropdown">
+                            <a href="/settings" class="dropdown-item"><i class="fa-regular fa-user"></i> {{ t('profile') }}</a>
+                            <a href="/settings" class="dropdown-item"><i class="fa-solid fa-gears"></i> {{ t('settings') }}</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="/logout" class="dropdown-item text-danger"><i class="fa-solid fa-sign-out-alt"></i> {{ t('logout') }}</a>
+                        </div>
+                    </div>
+
+                </div>
+            </header>
+
+            <div class="alert-container" style="padding: 15px 25px 0 25px;">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <span class="alert-text">{{ message }}</span>
+                                <button class="alert-close-btn" onclick="this.parentElement.remove()">&times;</button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <main class="page-content">
+                {% block content %}{% endblock %}
+            </main>
+
+        </div>
+
+    </div>
+
+    <script>
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        const sidebar = document.querySelector('.sidebar');
+        
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+
+        function setupDropdown(btnId, dropdownId) {
+            const btn = document.getElementById(btnId);
+            const menu = document.getElementById(dropdownId);
+            if (!btn || !menu) return;
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.dropdown-menu').forEach(m => {
+                    if (m !== menu) m.classList.remove('show');
+                });
+                menu.classList.toggle('show');
+            });
+        }
+
+        setupDropdown('lang-menu-btn', 'lang-dropdown');
+        setupDropdown('noti-menu-btn', 'noti-dropdown');
+        setupDropdown('user-menu-btn', 'user-dropdown');
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

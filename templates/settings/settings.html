@@ -1,0 +1,436 @@
+{% extends "layout.html" %}
+
+{% block extra_css %}
+<style>
+    .settings-grid {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 24px;
+        margin-top: 20px;
+    }
+    .settings-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .settings-menu-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 13.5px;
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        color: #64748b;
+        text-align: left;
+        transition: all 0.2s;
+    }
+    .settings-menu-btn:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+    .settings-menu-btn.active {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+    .settings-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #f1f5f9;
+    }
+    .settings-tab {
+        display: none;
+    }
+    .settings-tab.active {
+        display: block;
+    }
+    .form-group {
+        margin-bottom: 18px;
+    }
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+    .form-control {
+        width: 100%;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13.5px;
+        box-sizing: border-box;
+    }
+    .form-control:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    /* Switch toggle */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background-color: #cbd5e1;
+        transition: .3s;
+        border-radius: 24px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+    input:checked + .slider {
+        background-color: #10b981;
+    }
+    input:checked + .slider:before {
+        transform: translateX(20px);
+    }
+    .services-crud-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+    .service-crud-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('settings') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Configurer les paramètres généraux, les devises, la passerelle de paiement et les prestations de services.</p>
+</div>
+
+<div class="settings-grid">
+    <!-- Left Menu -->
+    <div class="settings-menu">
+        <button class="settings-menu-btn active" onclick="switchSettingsTab('general')">
+            <i class="fa-solid fa-gears"></i> Général
+        </button>
+        <button class="settings-menu-btn" onclick="switchSettingsTab('currency')">
+            <i class="fa-solid fa-coins"></i> Devise
+        </button>
+        <button class="settings-menu-btn" onclick="switchSettingsTab('stripe')">
+            <i class="fa-brands fa-stripe" style="font-size: 16px;"></i> Passerelle Stripe
+        </button>
+        <button class="settings-menu-btn" onclick="switchSettingsTab('services')">
+            <i class="fa-solid fa-sparkles"></i> Services CRUD
+        </button>
+    </div>
+
+    <!-- Right Settings Content -->
+    <div class="settings-card">
+        <!-- Save config form wrapping all settings except services which have separate actions -->
+        <form action="/settings" method="POST" id="main-settings-form">
+            
+            <!-- === TAB 1: General Settings === -->
+            <div id="settings-general" class="settings-tab active">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 18px;">Paramètres de l'Aéroport</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label>Nom de l'entreprise</label>
+                        <input type="text" name="company_name" value="{{ settings.company_name }}" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nom de l'aéroport</label>
+                        <input type="text" name="airport_name" value="{{ settings.airport_name }}" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Code IATA Aéroport</label>
+                        <input type="text" name="airport_code" value="{{ settings.airport_code }}" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email de contact</label>
+                        <input type="email" name="email" value="{{ settings.email }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="text" name="phone" value="{{ settings.phone }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Adresse postale</label>
+                        <input type="text" name="address" value="{{ settings.address }}" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <!-- === TAB 2: Currency Settings === -->
+            <div id="settings-currency" class="settings-tab">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 18px;">Paramètres de Devise</h3>
+                <div style="max-width: 480px;">
+                    <div class="form-group">
+                        <label>Devise Active du Système</label>
+                        <select name="currency" class="form-control" style="padding: 10px;">
+                            <option value="MAD" {% if settings.currency == 'MAD' %}selected{% endif %}>MAD (DH) — Dirham Marocain 🇲🇦</option>
+                            <option value="EUR" {% if settings.currency == 'EUR' %}selected{% endif %}>EUR (€) — Euro Européen 🇪🇺</option>
+                            <option value="USD" {% if settings.currency == 'USD' %}selected{% endif %}>USD ($) — Dollar Américain 🇺🇸</option>
+                        </select>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 10px; background: #f8fafc; border-radius: 10px; padding: 12px; border: 1px solid #e2e8f0;">
+                        💡 <strong>Conversion dynamique :</strong> Le système stocke les tarifs de base en Dirham (MAD). Si vous activez l'Euro ou le Dollar, les prix seront convertis à la volée dans l'interface en utilisant les taux du jour (1 EUR = 10.8 MAD, 1 USD = 10.1 MAD) pour l'affichage et les tickets de paiement.
+                    </p>
+                </div>
+            </div>
+
+            <!-- === TAB 3: Stripe Payment Gateway === -->
+            <div id="settings-stripe" class="settings-tab">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 8px;">Configuration de Stripe</h3>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 18px;">
+                    💡 <strong>À quoi sert cette configuration ?</strong> Elle permet d'activer le paiement électronique (Carte bancaire, Apple Pay, Google Pay) pour les tickets de parking à la sortie. Sans ces clés (ou en utilisant la clé par défaut), le système fonctionnera en mode simulation.
+                </p>
+                
+                <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 12px 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+                    <div>
+                        <h4 style="font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 2px;">Activer Stripe Payment Gateway</h4>
+                        <p style="font-size: 12px; color: #64748b; margin: 0;">Permet d'utiliser les règlements réels par carte et mobile à la sortie.</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="enable_stripe" value="1" {% if settings.enable_stripe %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Stripe Publishable Key (Clé Publique - pk_test_...)</label>
+                    <input type="text" name="stripe_publishable_key" value="{{ settings.stripe_publishable_key }}" class="form-control" placeholder="pk_test_...">
+                </div>
+
+                <div class="form-group">
+                    <label>Stripe Secret Key (Clé Secrète - sk_test_...)</label>
+                    <input type="password" name="stripe_secret_key" value="{{ settings.stripe_secret_key }}" class="form-control" placeholder="sk_test_...">
+                </div>
+            </div>
+            
+            <!-- Global submit for tab configurations -->
+            <div id="save-settings-bar" style="border-top: 1px solid #f1f5f9; padding-top: 18px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="login-btn" style="background-color: #2563eb; width: auto; padding: 10px 24px;">
+                    <i class="fa-solid fa-floppy-disk"></i> Sauvegarder les configurations
+                </button>
+            </div>
+        </form>
+
+        <!-- === TAB 4: Services CRUD Management (Self-contained CRUD) === -->
+        <div id="settings-services" class="settings-tab">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 18px;">
+                <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0;">Gestion des Services Additionnels</h3>
+                <button onclick="openAddServiceModal()" class="tab-btn" style="background: #10b981; color: white; border: none; font-size: 12.5px; padding: 6px 14px; border-radius: 8px;">
+                    <i class="fa-solid fa-plus"></i> Ajouter un Service
+                </button>
+            </div>
+
+            <div class="services-crud-grid">
+                {% for svc in services %}
+                <div class="service-crud-card">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <div style="background: #eff6ff; color: #2563eb; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fa-solid {{ svc.icon or 'fa-concierge-bell' }}"></i>
+                            </div>
+                            <div>
+                                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b; margin: 0;">{{ svc.name }}</h4>
+                                <span style="font-size: 11px; font-weight: 700; color: {% if svc.status == 'ACTIVE' %}#16a34a{% else %}#ef4444{% endif %};">
+                                    {{ svc.status }}
+                                </span>
+                            </div>
+                        </div>
+                        <p style="font-size: 12.5px; color: #64748b; line-height: 1.4; margin: 6px 0;">{{ svc.description or 'Aucune description.' }}</p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                        <span style="font-size: 14px; font-weight: 800; color: #2563eb;">{{ format_price(svc.price) }}</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button onclick="openEditServiceModal('{{ svc.id }}', '{{ svc.name }}', '{{ svc.price }}', '{{ svc.description }}', '{{ svc.icon }}', '{{ svc.status }}')" class="tab-btn" style="padding: 4px 8px; border-radius: 6px; font-size: 11px; color: #475569;">
+                                <i class="fa-solid fa-pen"></i> Modifier
+                            </button>
+                            <a href="/settings/services/delete/{{ svc.id }}" class="tab-btn" style="padding: 4px 8px; border-radius: 6px; font-size: 11px; border-color: #fecaca; color: #dc2626; text-decoration: none;" onclick="return confirm('Supprimer ce service ?')">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #64748b;">
+                    <i class="fa-solid fa-info-circle" style="font-size: 30px; margin-bottom: 8px;"></i>
+                    <p>Aucun service configuré pour le moment.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ==========================================
+  MODALS FOR SERVICES CRUD
+========================================== -->
+<!-- Add Service Modal -->
+<div id="addServiceModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 4000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; width: 440px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Ajouter un Nouveau Service</h3>
+        <form action="/settings/services/add" method="POST">
+            <div class="form-group">
+                <label>Nom du service</label>
+                <input type="text" name="name" class="form-control" required placeholder="Ex: Lavage Express">
+            </div>
+            <div class="form-group">
+                <label>Tarif de base (MAD)</label>
+                <input type="number" name="price" step="0.01" class="form-control" required placeholder="Ex: 40.00">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" class="form-control" rows="2" placeholder="Description courte..."></textarea>
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Icone FontAwesome</label>
+                    <select name="icon" class="form-control">
+                        <option value="fa-soap">🧼 Lavage / Soap</option>
+                        <option value="fa-water">💧 Eau / Water</option>
+                        <option value="fa-mug-hot">☕ Mug / Café</option>
+                        <option value="fa-charging-station">⚡ Borne Élec</option>
+                        <option value="fa-suitcase">🧳 Valise / Bagages</option>
+                        <option value="fa-concierge-bell">🔔 Concierge Bell</option>
+                        <option value="fa-wrench">🔧 Outils / Wrench</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Statut</label>
+                    <select name="status" class="form-control">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeAddServiceModal()" class="tab-btn" style="border-color: #cbd5e1; color: #475569; padding: 8px 16px;">Annuler</button>
+                <button type="submit" class="login-btn" style="background-color: #10b981; width: auto; padding: 8px 16px;">Créer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Service Modal -->
+<div id="editServiceModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 4000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 16px; width: 440px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Modifier le Service</h3>
+        <form id="edit-service-form" action="" method="POST">
+            <div class="form-group">
+                <label>Nom du service</label>
+                <input type="text" name="name" id="edit-svc-name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Tarif de base (MAD)</label>
+                <input type="number" name="price" id="edit-svc-price" step="0.01" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" id="edit-svc-desc" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Icone FontAwesome</label>
+                    <select name="icon" id="edit-svc-icon" class="form-control">
+                        <option value="fa-soap">🧼 Lavage / Soap</option>
+                        <option value="fa-water">💧 Eau / Water</option>
+                        <option value="fa-mug-hot">☕ Mug / Café</option>
+                        <option value="fa-charging-station">⚡ Borne Élec</option>
+                        <option value="fa-suitcase">🧳 Valise / Bagages</option>
+                        <option value="fa-concierge-bell">🔔 Concierge Bell</option>
+                        <option value="fa-wrench">🔧 Outils / Wrench</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Statut</label>
+                    <select name="status" id="edit-svc-status" class="form-control">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeEditServiceModal()" class="tab-btn" style="border-color: #cbd5e1; color: #475569; padding: 8px 16px;">Annuler</button>
+                <button type="submit" class="login-btn" style="background-color: #2563eb; width: auto; padding: 8px 16px;">Modifier</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Tab switching inside Settings page
+    function switchSettingsTab(tabId) {
+        document.querySelectorAll('.settings-menu-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.settings-tab').forEach(tab => tab.classList.remove('active'));
+        
+        event.currentTarget.classList.add('active');
+        document.getElementById('settings-' + tabId).classList.add('active');
+        
+        // Hide settings save bar if inside Services CRUD
+        const saveBar = document.getElementById('save-settings-bar');
+        if (tabId === 'services') {
+            saveBar.style.display = 'none';
+        } else {
+            saveBar.style.display = 'flex';
+        }
+    }
+    
+    // Add Service Modal utilities
+    function openAddServiceModal() {
+        document.getElementById('addServiceModal').style.display = 'flex';
+    }
+    function closeAddServiceModal() {
+        document.getElementById('addServiceModal').style.display = 'none';
+    }
+    
+    // Edit Service Modal utilities
+    function openEditServiceModal(id, name, price, desc, icon, status) {
+        const form = document.getElementById('edit-service-form');
+        form.action = `/settings/services/edit/${id}`;
+        
+        document.getElementById('edit-svc-name').value = name;
+        document.getElementById('edit-svc-price').value = price;
+        document.getElementById('edit-svc-desc').value = desc;
+        document.getElementById('edit-svc-icon').value = icon;
+        document.getElementById('edit-svc-status').value = status;
+        
+        document.getElementById('editServiceModal').style.display = 'flex';
+    }
+    function closeEditServiceModal() {
+        document.getElementById('editServiceModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

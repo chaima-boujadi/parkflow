@@ -1,0 +1,257 @@
+{% extends "layout.html" %}
+
+{% block extra_css %}
+<style>
+    .user-table-actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+    .user-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 4000;
+        align-items: center;
+        justify-content: center;
+    }
+    .user-modal-content {
+        background: white;
+        border-radius: 16px;
+        width: 460px;
+        padding: 24px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 5px;
+    }
+    .form-control {
+        width: 100%;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 13.5px;
+        box-sizing: border-box;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('users') }}</h1>
+        <p style="font-size: 14px; color: #64748b;">Administrer les comptes des utilisateurs et définir les droits d'accès.</p>
+    </div>
+    <button onclick="openAddUserModal()" class="tab-btn" style="background-color: #2563eb; color: white; border: none; padding: 8px 16px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-user-plus"></i> Ajouter un Utilisateur
+    </button>
+</div>
+
+<!-- USERS LIST TABLE -->
+<div class="panel-card" style="padding: 0; overflow: hidden;">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+            <thead>
+                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #64748b;">
+                    <th style="padding: 14px 16px;">Nom complet</th>
+                    <th style="padding: 14px 16px;">Identifiant</th>
+                    <th style="padding: 14px 16px;">Email</th>
+                    <th style="padding: 14px 16px;">Téléphone</th>
+                    <th style="padding: 14px 16px;">Rôle</th>
+                    <th style="padding: 14px 16px;">Statut</th>
+                    <th style="padding: 14px 16px; text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px 16px;">
+                        <span style="font-weight: 700; color: #1e293b;">{{ u.fullname }}</span>
+                    </td>
+                    <td style="padding: 12px 16px; font-weight: 600; color: #475569;">{{ u.username }}</td>
+                    <td style="padding: 12px 16px; color: #64748b;">{{ u.email or 'N/A' }}</td>
+                    <td style="padding: 12px 16px; color: #64748b;">{{ u.phone or 'N/A' }}</td>
+                    <td style="padding: 12px 16px;">
+                        {% if u.role == 'ADMIN' %}
+                        <span class="badge-status badge-danger" style="font-size: 11px;">ADMIN</span>
+                        {% elif u.role == 'RESPONSABLE' %}
+                        <span class="badge-status badge-info" style="font-size: 11px;">MANAGER</span>
+                        {% else %}
+                        <span class="badge-status badge-success" style="font-size: 11px;">AGENT</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px;">
+                        {% if u.status == 'ACTIVE' %}
+                        <span style="color: #16a34a; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                            <span style="width: 8px; height: 8px; background: #16a34a; border-radius: 50%;"></span> Actif
+                        </span>
+                        {% else %}
+                        <span style="color: #94a3b8; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                            <span style="width: 8px; height: 8px; background: #94a3b8; border-radius: 50%;"></span> Désactivé
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px 16px; text-align: right;">
+                        <div class="user-table-actions">
+                            <button onclick="openEditUserModal('{{ u.id }}', '{{ u.fullname }}', '{{ u.username }}', '{{ u.email }}', '{{ u.phone }}', '{{ u.role }}', '{{ u.status }}')" 
+                                    class="tab-btn" 
+                                    style="padding: 4px 8px; font-size: 11px; border-radius: 6px; color: #475569;">
+                                <i class="fa-solid fa-pen"></i> Modifier
+                            </button>
+                            <a href="/users/delete/{{ u.id }}" 
+                               class="tab-btn" 
+                               style="padding: 4px 8px; font-size: 11px; border-radius: 6px; border-color: #fecaca; color: #dc2626; text-decoration: none;" 
+                               onclick="return confirm('Désactiver cet utilisateur ?')">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ==========================================
+  MODALS FOR USER CRUD
+========================================== -->
+<!-- Add User Modal -->
+<div id="addUserModal" class="user-modal">
+    <div class="user-modal-content">
+        <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Ajouter un Nouvel Utilisateur</h3>
+        <form action="/users" method="POST">
+            <div class="form-group">
+                <label>Nom complet</label>
+                <input type="text" name="fullname" class="form-control" required placeholder="Ex: Mohamed Alami">
+            </div>
+            <div class="form-group">
+                <label>Nom d'utilisateur (Username)</label>
+                <input type="text" name="username" class="form-control" required placeholder="Ex: malami">
+            </div>
+            <div class="form-group">
+                <label>Adresse Email</label>
+                <input type="email" name="email" class="form-control" required placeholder="Ex: mohamed@malami.com">
+            </div>
+            <div class="form-group">
+                <label>Téléphone</label>
+                <input type="text" name="phone" class="form-control" placeholder="Ex: 0661000000">
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" name="password" class="form-control" required placeholder="Min. 6 caractères">
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Rôle</label>
+                    <select name="role" class="form-control">
+                        <option value="AGENT">AGENT (Garde)</option>
+                        <option value="RESPONSABLE">RESPONSABLE (Manager)</option>
+                        <option value="ADMIN">ADMIN (Administrateur)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Statut</label>
+                    <select name="status" class="form-control">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeAddUserModal()" class="tab-btn" style="border-color: #cbd5e1; color: #475569; padding: 8px 16px;">Annuler</button>
+                <button type="submit" class="login-btn" style="background-color: #2563eb; width: auto; padding: 8px 16px;">Créer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="user-modal">
+    <div class="user-modal-content">
+        <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Modifier l'Utilisateur</h3>
+        <form id="edit-user-form" action="" method="POST">
+            <div class="form-group">
+                <label>Nom complet</label>
+                <input type="text" name="fullname" id="edit-user-fullname" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Nom d'utilisateur</label>
+                <input type="text" name="username" id="edit-user-username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Adresse Email</label>
+                <input type="email" name="email" id="edit-user-email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Téléphone</label>
+                <input type="text" name="phone" id="edit-user-phone" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Nouveau mot de passe (Facultatif)</label>
+                <input type="password" name="password" class="form-control" placeholder="Laisser vide pour ne pas modifier">
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Rôle</label>
+                    <select name="role" id="edit-user-role" class="form-control">
+                        <option value="AGENT">AGENT</option>
+                        <option value="RESPONSABLE">RESPONSABLE</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Statut</label>
+                    <select name="status" id="edit-user-status" class="form-control">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="closeEditUserModal()" class="tab-btn" style="border-color: #cbd5e1; color: #475569; padding: 8px 16px;">Annuler</button>
+                <button type="submit" class="login-btn" style="background-color: #2563eb; width: auto; padding: 8px 16px;">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openAddUserModal() {
+        document.getElementById('addUserModal').style.display = 'flex';
+    }
+    function closeAddUserModal() {
+        document.getElementById('addUserModal').style.display = 'none';
+    }
+    
+    function openEditUserModal(id, fullname, username, email, phone, role, status) {
+        const form = document.getElementById('edit-user-form');
+        form.action = `/users/edit/${id}`;
+        
+        document.getElementById('edit-user-fullname').value = fullname;
+        document.getElementById('edit-user-username').value = username;
+        document.getElementById('edit-user-email').value = email;
+        document.getElementById('edit-user-phone').value = phone;
+        document.getElementById('edit-user-role').value = role;
+        document.getElementById('edit-user-status').value = status;
+        
+        document.getElementById('editUserModal').style.display = 'flex';
+    }
+    function closeEditUserModal() {
+        document.getElementById('editUserModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

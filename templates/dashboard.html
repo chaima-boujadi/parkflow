@@ -1,0 +1,174 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('dashboard') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">{{ t('smart_parking') }} - Aéroport Essaouira Mogador</p>
+</div>
+
+<!-- STATISTICS CARDS GRID -->
+<div class="stats-grid">
+    
+    <!-- Total Spots -->
+    <div class="stat-card">
+        <div class="stat-details">
+            <span class="stat-title">{{ t('total_spots') }}</span>
+            <span class="stat-value">{{ total_places }}</span>
+        </div>
+        <div class="stat-icon-wrapper icon-blue">
+            <i class="fa-solid fa-square-parking"></i>
+        </div>
+    </div>
+
+    <!-- Available Spots -->
+    <div class="stat-card">
+        <div class="stat-details">
+            <span class="stat-title">{{ t('available_spots') }}</span>
+            <span class="stat-value" style="color: #10b981;">{{ available_places }}</span>
+        </div>
+        <div class="stat-icon-wrapper icon-green">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+    </div>
+
+    <!-- Occupied Spots -->
+    <div class="stat-card">
+        <div class="stat-details">
+            <span class="stat-title">{{ t('occupied_spots') }}</span>
+            <span class="stat-value" style="color: #ef4444;">{{ occupied_places }}</span>
+        </div>
+        <div class="stat-icon-wrapper icon-red">
+            <i class="fa-solid fa-car"></i>
+        </div>
+    </div>
+
+    <!-- Entries Today -->
+    <div class="stat-card">
+        <div class="stat-details">
+            <span class="stat-title">{{ t('entries_today') }}</span>
+            <span class="stat-value">{{ entries_today }}</span>
+        </div>
+        <div class="stat-icon-wrapper icon-purple">
+            <i class="fa-solid fa-right-to-bracket"></i>
+        </div>
+    </div>
+
+    <!-- Exits Today -->
+    <div class="stat-card">
+        <div class="stat-details">
+            <span class="stat-title">{{ t('exits_today') }}</span>
+            <span class="stat-value">{{ exits_today }}</span>
+        </div>
+        <div class="stat-icon-wrapper icon-orange">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </div>
+    </div>
+
+    <!-- Revenue Today -->
+    <div class="stat-card">
+        <div class="stat-details">
+            <span class="stat-title">{{ t('revenue_today') }}</span>
+            <span class="stat-value" style="color: #d97706;">{{ "%.2f"|format(revenue_today) }} <span style="font-size: 14px;">{{ currency }}</span></span>
+        </div>
+        <div class="stat-icon-wrapper icon-gold">
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+    </div>
+
+</div>
+
+<!-- CHARTS & PANELS GRID -->
+<div class="dashboard-grid">
+    
+    <!-- Left Panel: Occupancy and Flow Chart -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-chart-area text-primary" style="margin-right: 8px;"></i> {{ t('statistics') }}</h3>
+            <div class="panel-actions">
+                <span style="font-size: 12px; color: #64748b; font-weight: 500;">Realtime Flow</span>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="flowChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Right Panel: Occupancy by Zone -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-chart-pie text-primary" style="margin-right: 8px;"></i> {{ t('occupancy_rate') }}</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="zoneChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- RECENT ACTIVITIES PANEL -->
+<div class="panel-card" style="margin-bottom: 24px;">
+    <div class="panel-header">
+        <h3 class="panel-title"><i class="fa-solid fa-clock-rotate-left text-primary" style="margin-right: 8px;"></i> {{ t('recent_activities') }}</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Action</th>
+                    <th>Détails</th>
+                    <th>Date & Heure</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if recent_activities %}
+                    {% for log in recent_activities %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-weight: 600; color: #0f172a;">{{ log.username or 'Système' }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-status {% if log.action in ['LOGIN', 'REGISTER'] %}badge-info{% elif log.action in ['ENTRY', 'PAYMENT'] %}badge-success{% else %}badge-danger{% endif %}">
+                                    {{ log.action }}
+                                </span>
+                            </td>
+                            <td style="color: #475569; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ log.details }}
+                            </td>
+                            <td style="color: #64748b; font-size: 12px;">
+                                {{ log.created_at }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 30px;">
+                            {{ t('no_activity') }}
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Pass Python context data into JavaScript variables safely
+    const zoneNames = {{ zone_names | tojson }};
+    const zoneTotals = {{ zone_totals | tojson }};
+    const zoneOccupied = {{ zone_occupied | tojson }};
+    
+    const entriesToday = {{ entries_today }};
+    const exitsToday = {{ exits_today }};
+    const availableSpots = {{ available_places }};
+    const occupiedSpots = {{ occupied_places }};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

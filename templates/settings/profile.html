@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('profile') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Gérer vos informations personnelles et modifier votre mot de passe</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr; gap: 24px;">
+    
+    <!-- User Card -->
+    <div class="panel-card" style="text-align: center; height: fit-content; padding: 30px 20px;">
+        <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 16px;">
+            <img src="{{ url_for('static', filename='images/' + (user.photo or 'default_avatar.png')) }}" 
+                 alt="Avatar" 
+                 style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 4px solid #eff6ff; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            <div style="position: absolute; bottom: 0; right: 0; background: #2563eb; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; cursor: pointer;">
+                <i class="fa-solid fa-camera" style="font-size: 12px;"></i>
+            </div>
+        </div>
+        
+        <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ user.fullname }}</h3>
+        <p style="font-size: 13.5px; color: #64748b; margin-bottom: 12px;">@{{ user.username }}</p>
+        
+        {% if user.role == 'ADMIN' %}
+        <span class="badge-status badge-danger" style="font-size: 11px; padding: 4px 12px; border-radius: 20px;">ADMINISTRATEUR</span>
+        {% elif user.role == 'RESPONSABLE' %}
+        <span class="badge-status badge-info" style="font-size: 11px; padding: 4px 12px; border-radius: 20px;">RESPONSABLE</span>
+        {% else %}
+        <span class="badge-status badge-success" style="font-size: 11px; padding: 4px 12px; border-radius: 20px;">AGENT DE GARDE</span>
+        {% endif %}
+        
+        <div style="margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 18px; text-align: left; font-size: 13px; color: #475569;">
+            <div style="margin-bottom: 10px;">
+                <i class="fa-solid fa-envelope" style="width: 16px; margin-right: 6px; color: #64748b;"></i> {{ user.email or 'Non renseigné' }}
+            </div>
+            <div style="margin-bottom: 10px;">
+                <i class="fa-solid fa-phone" style="width: 16px; margin-right: 6px; color: #64748b;"></i> {{ user.phone or 'Non renseigné' }}
+            </div>
+            <div>
+                <i class="fa-solid fa-calendar-days" style="width: 16px; margin-right: 6px; color: #64748b;"></i> Créé le: {{ user.created_at }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Form -->
+    <div class="panel-card">
+        <div class="panel-header" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 18px;">
+            <h3 class="panel-title"><i class="fa-solid fa-user-pen text-primary"></i> Modifier les Informations</h3>
+        </div>
+        
+        <form action="/profile" method="POST">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nom Complet</label>
+                    <input type="text" name="fullname" value="{{ user.fullname }}" class="form-control" required style="border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Identifiant / Username</label>
+                    <input type="text" value="{{ user.username }}" class="form-control" disabled style="border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px; width: 100%; box-sizing: border-box; background-color: #f1f5f9; cursor: not-allowed;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Adresse Email</label>
+                    <input type="email" name="email" value="{{ user.email }}" class="form-control" style="border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Numéro de Téléphone</label>
+                    <input type="text" name="phone" value="{{ user.phone or '' }}" class="form-control" style="border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px; width: 100%; box-sizing: border-box;">
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid #f1f5f9; margin-top: 24px; padding-top: 18px; margin-bottom: 16px;">
+                <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 0; margin-bottom: 12px;"><i class="fa-solid fa-key text-primary"></i> Sécurité du Compte</h4>
+                <div style="max-width: 400px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nouveau mot de passe</label>
+                    <input type="password" name="password" placeholder="Laisser vide pour ne pas modifier" class="form-control" style="border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px; width: 100%; box-sizing: border-box;">
+                    <span style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Le mot de passe doit contenir au moins 6 caractères.</span>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #f1f5f9; padding-top: 18px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="login-btn" style="background-color: #2563eb; width: auto; padding: 10px 24px;">
+                    <i class="fa-solid fa-user-check"></i> Sauvegarder les modifications
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

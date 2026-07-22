@@ -1,0 +1,181 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('search') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Recherche instantanée : Ticket, Matricule, Propriétaire, Téléphone</p>
+</div>
+
+<!-- ======= LIVE SEARCH BAR ======= -->
+<div class="panel-card" style="margin-bottom: 24px;">
+    <div style="position: relative;">
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:16px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px;"></i>
+        <input type="text" id="search-input" value="{{ q }}" autofocus
+               placeholder="Tapez un matricule, nom, téléphone ou TK-XXXXXX..."
+               style="width:100%; border:2px solid #e2e8f0; border-radius:12px; padding:14px 14px 14px 46px;
+                      font-size:15px; box-sizing:border-box; transition:border-color 0.2s;
+                      outline:none; font-family:inherit;">
+        <span id="search-spinner" style="display:none; position:absolute; right:16px; top:50%; transform:translateY(-50%); color:#2563eb;">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </span>
+    </div>
+    <p style="font-size:12px; color:#94a3b8; margin-top:8px; margin-left:4px;">
+        <i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Recherche dynamique — résultats en temps réel sans recharger la page
+    </p>
+</div>
+
+<!-- ======= RESULTS TABLE ======= -->
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title"><i class="fa-solid fa-list-ul text-primary"></i> Résultats</h3>
+        <span id="results-count" style="font-size:13px; color:#64748b; font-weight:600;">
+            {% if results %}{{ results|length }} résultat(s){% else %}—{% endif %}
+        </span>
+    </div>
+    <div class="table-responsive" id="results-container">
+        {% if q and results %}
+            {% include "partials/search_results_table.html" ignore missing %}
+            {% if not self.content() %}
+                {{ _render_results(results) }}
+            {% endif %}
+        {% endif %}
+        <table class="custom-table" id="results-table" {% if not results %}style="display:none"{% endif %}>
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Matricule</th>
+                    <th>Propriétaire</th>
+                    <th>Zone / Place</th>
+                    <th>Entrée</th>
+                    <th>Sortie</th>
+                    <th style="text-align:center;">Prix</th>
+                    <th style="text-align:center;">Statut</th>
+                    <th style="text-align:center;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="results-tbody">
+                {% for r in results %}
+                <tr>
+                    <td style="font-weight:700;color:#1e3a8a;">TK-{{ "%06d"|format(r.id) }}</td>
+                    <td style="font-weight:700;color:#b45309;">{{ r.matricule }}</td>
+                    <td>
+                        <div style="font-weight:600;color:#0f172a;">{{ r.owner_name or 'Inconnu' }}</div>
+                        <div style="font-size:11px;color:#64748b;">{{ r.phone or '' }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">{{ r.zone_name }}</div>
+                        <div style="font-size:11px;color:#2563eb;font-weight:700;">{{ r.place_number }}</div>
+                    </td>
+                    <td style="font-size:12px;color:#475569;">{{ r.entry_datetime }}</td>
+                    <td style="font-size:12px;color:#475569;">{{ r.exit_datetime or '—' }}</td>
+                    <td style="text-align:center;font-weight:700;color:#0f172a;">{{ r.total_price or '—' }}</td>
+                    <td style="text-align:center;">
+                        {% if r.session_status == 'INSIDE' %}
+                            <span class="badge-status badge-danger">Dedans</span>
+                        {% else %}
+                            <span class="badge-status badge-success">Sorti</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if r.session_status == 'INSIDE' %}
+                        <a href="/parking/exit?search=TK-{{ '%06d'|format(r.id) }}"
+                           style="display:inline-flex;align-items:center;gap:4px;background:#dc2626;color:white;padding:5px 11px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sortie
+                        </a>
+                        {% else %}
+                        <span style="font-size:11px;color:#94a3b8;">Terminé</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div id="empty-state" style="text-align:center;padding:50px 20px;color:#94a3b8;{% if results %}display:none{% endif %}">
+            <i class="fa-solid fa-magnifying-glass" style="font-size:40px;margin-bottom:12px;opacity:0.35;"></i>
+            <p style="font-size:14px;font-weight:600;">Tapez pour rechercher...</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const searchInput  = document.getElementById('search-input');
+    const spinner      = document.getElementById('search-spinner');
+    const tbody        = document.getElementById('results-tbody');
+    const table        = document.getElementById('results-table');
+    const emptyState   = document.getElementById('empty-state');
+    const resultsCount = document.getElementById('results-count');
+    let   debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const q = searchInput.value.trim();
+
+        if (q.length < 2) {
+            table.style.display = 'none';
+            emptyState.style.display = 'block';
+            resultsCount.textContent = '—';
+            return;
+        }
+
+        spinner.style.display = 'block';
+        debounceTimer = setTimeout(() => {
+            fetch('/parking/search?json=1&q=' + encodeURIComponent(q))
+                .then(res => res.json())
+                .then(data => {
+                    spinner.style.display = 'none';
+                    resultsCount.textContent = data.length + ' résultat(s)';
+
+                    if (data.length === 0) {
+                        table.style.display = 'none';
+                        emptyState.style.display = 'block';
+                        emptyState.innerHTML = '<i class="fa-solid fa-circle-xmark" style="font-size:40px;margin-bottom:12px;opacity:0.35;color:#ef4444;"></i><p style="font-size:14px;font-weight:600;color:#ef4444;">Aucun résultat pour "' + q + '"</p>';
+                        return;
+                    }
+
+                    emptyState.style.display = 'none';
+                    table.style.display = 'table';
+                    tbody.innerHTML = '';
+
+                    data.forEach(r => {
+                        const isInside   = r.status === 'INSIDE';
+                        const statusBadge = isInside
+                            ? '<span class="badge-status badge-danger">Dedans</span>'
+                            : '<span class="badge-status badge-success">Sorti</span>';
+                        const actionBtn = isInside
+                            ? `<a href="/parking/exit?search=${encodeURIComponent(r.ticket)}"
+                                  style="display:inline-flex;align-items:center;gap:4px;background:#dc2626;color:white;padding:5px 11px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;">
+                                  <i class="fa-solid fa-right-from-bracket"></i> Sortie
+                               </a>`
+                            : '<span style="font-size:11px;color:#94a3b8;">Terminé</span>';
+
+                        tbody.innerHTML += `
+                          <tr>
+                            <td style="font-weight:700;color:#1e3a8a;">${r.ticket}</td>
+                            <td style="font-weight:700;color:#b45309;">${r.matricule}</td>
+                            <td>
+                                <div style="font-weight:600;color:#0f172a;">${r.owner_name || 'Inconnu'}</div>
+                                <div style="font-size:11px;color:#64748b;">${r.phone}</div>
+                            </td>
+                            <td>
+                                <div style="font-weight:600;">${r.zone_name}</div>
+                                <div style="font-size:11px;color:#2563eb;font-weight:700;">${r.place_number}</div>
+                            </td>
+                            <td style="font-size:12px;color:#475569;">${r.entry_datetime}</td>
+                            <td style="font-size:12px;color:#475569;">${r.exit_datetime || '—'}</td>
+                            <td style="text-align:center;font-weight:700;">${r.total_price || '—'}</td>
+                            <td style="text-align:center;">${statusBadge}</td>
+                            <td style="text-align:center;">${actionBtn}</td>
+                          </tr>`;
+                    });
+                })
+                .catch(() => { spinner.style.display = 'none'; });
+        }, 350); /* debounce 350ms */
+    });
+
+    /* Auto-trigger if q pre-filled from URL */
+    if (searchInput.value.length >= 2) searchInput.dispatchEvent(new Event('input'));
+</script>
+{% endblock %}

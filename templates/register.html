@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkFlow | Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        .login-card {
+            max-width: 380px;
+            border-radius: 30px;
+        }
+        .form-select-custom {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 13px;
+            color: #334155;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="center-wrapper">
+        
+        <div class="login-card">
+            <img src="{{ url_for('static', filename='images/login-logo.png') }}" class="logo" alt="Morocco Airport Logo" style="max-height: 80px; width: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">
+            <h2 id="reg-title">Create Account</h2>
+            <p class="subtitle" id="reg-subtitle">Join us to manage parking sessions</p>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" style="color: {% if category=='danger' %}#ef4444{% else %}#10b981{% endif %}; font-size: 13px; margin-bottom: 12px; font-weight: 500; text-align: center; background: {% if category=='danger' %}#fef2f2{% else %}#ecfdf5{% endif %}; border: 1px solid {% if category=='danger' %}#fee2e2{% else %}#d1fae5{% endif %}; padding: 8px 10px; border-radius: 8px;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form action="/register" method="POST" id="register-form">
+                <div class="input-box">
+                    <i class="fa-regular fa-address-card"></i>
+                    <input type="text" name="fullname" id="input-fullname" placeholder="Full Name" required>
+                </div>
+
+                <div class="input-box">
+                    <i class="fa-regular fa-user"></i>
+                    <input type="text" name="username" id="input-username" placeholder="Username" required>
+                </div>
+
+                <div class="input-box">
+                    <i class="fa-regular fa-envelope"></i>
+                    <input type="email" name="email" id="input-email" placeholder="Email Address" required>
+                </div>
+
+                <div class="input-box">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" name="password" id="input-pass" placeholder="Password" required>
+                    <i class="fa-regular fa-eye eye" style="cursor: pointer;" id="toggle-password"></i>
+                </div>
+
+                <div class="input-box">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" name="confirm_password" id="input-pass-confirm" placeholder="Confirm Password" required>
+                    <i class="fa-regular fa-eye eye" style="cursor: pointer;" id="toggle-password-confirm"></i>
+                </div>
+
+                <div class="input-box">
+                    <i class="fa-solid fa-globe"></i>
+                    <select name="lang" id="select-lang" class="form-select-custom">
+                        <option value="fr">Français (FR)</option>
+                        <option value="en" selected>English (EN)</option>
+                        <option value="ar">العربية (AR)</option>
+                    </select>
+                </div>
+
+                <div class="options" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin: 12px 0;">
+                    <label style="cursor: pointer; text-align: left; display: flex; align-items: flex-start; gap: 6px; flex: 1;">
+                        <input type="checkbox" required style="margin-top: 3px;">
+                        <span id="label-terms" style="font-size: 11px; line-height: 1.3;">I accept the Terms and Conditions and Privacy Policy</span>
+                    </label>
+                    <div style="font-size: 12px; white-space: nowrap; margin-top: 2px;">
+                        <span id="text-have-account" style="display: none;">Already have an account?</span>
+                        <a href="/login" id="link-login" style="color: #3b82f6; text-decoration: none; font-weight: 700;">Login Here</a>
+                    </div>
+                </div>
+
+                <button class="login-btn" type="submit" style="margin-top: 10px;">
+                    <i class="fa-solid fa-user-plus"></i> <span id="btn-register-submit">Register</span>
+                </button>
+            </form>
+
+            <div class="footer">
+                ParkFlow © 2026 Airport Smart Parking System
+            </div>
+        </div>
+
+        <div class="language-box">
+            <button class="lang active" onclick="changeLanguage('en')">GB English</button>
+            <button class="lang" onclick="changeLanguage('fr')">FR Français</button>
+            <button class="lang" onclick="changeLanguage('ar')">MA العربية</button>
+        </div>
+
+    
+<script>
+const translations = {
+    en: {
+        title: "Create Account",
+        subtitle: "Join us to manage parking sessions",
+        fullname: "Full Name",
+        username: "Username",
+        email: "Email Address",
+        pass: "Password",
+        confirmPass: "Confirm Password",
+        terms: "I accept the Terms and Conditions and Privacy Policy",
+        register: "Register",
+        haveAccount: "Already have an account?",
+        login: "Login Here",
+        dir: "ltr"
+    },
+    fr: {
+        title: "Créer un compte",
+        subtitle: "Rejoignez-nous pour gérer le parking",
+        fullname: "Nom Complet",
+        username: "Nom d'utilisateur",
+        email: "Adresse Email",
+        pass: "Mot de passe",
+        confirmPass: "Confirmer le mot de passe",
+        terms: "J'accepte les conditions d'utilisation et la politique de confidentialité",
+        register: "S'inscrire",
+        haveAccount: "Vous avez déjà un compte ?",
+        login: "Se connecter ici",
+        dir: "ltr"
+    },
+    ar: {
+        title: "إنشاء حساب",
+        subtitle: "انضم إلينا لإدارة عمليات وقوف السيارات",
+        fullname: "الاسم الكامل",
+        username: "اسم المستخدم",
+        email: "البريد الإلكتروني",
+        pass: "كلمة المرور",
+        confirmPass: "تأكيد كلمة المرور",
+        terms: "أوافق على الشروط والأحكام وسياسة الخصوصية",
+        register: "تسجيل حساب",
+        haveAccount: "لديك حساب بالفعل؟",
+        login: "سجل الدخول هنا",
+        dir: "rtl"
+    }
+};
+
+function changeLanguage(lang) {
+    document.getElementById('reg-title').innerText = translations[lang].title;
+    document.getElementById('reg-subtitle').innerText = translations[lang].subtitle;
+    document.getElementById('input-fullname').placeholder = translations[lang].fullname;
+    document.getElementById('input-username').placeholder = translations[lang].username;
+    document.getElementById('input-email').placeholder = translations[lang].email;
+    document.getElementById('input-pass').placeholder = translations[lang].pass;
+    document.getElementById('input-pass-confirm').placeholder = translations[lang].confirmPass;
+    document.getElementById('label-terms').innerText = translations[lang].terms;
+    document.getElementById('btn-register-submit').innerText = translations[lang].register;
+    document.getElementById('text-have-account').innerText = translations[lang].haveAccount;
+    document.getElementById('link-login').innerText = translations[lang].login;
+    
+    document.body.style.direction = translations[lang].dir;
+
+    document.querySelectorAll('.lang').forEach(btn => btn.classList.remove('active'));
+    const currentBtn = Array.from(document.querySelectorAll('.lang')).find(btn => btn.getAttribute('onclick').includes(lang));
+    if (currentBtn) {
+        currentBtn.classList.add('active');
+    }
+    
+    document.getElementById('select-lang').value = lang;
+}
+
+document.getElementById('select-lang').addEventListener('change', (e) => {
+    changeLanguage(e.target.value);
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    changeLanguage('en');
+});
+
+const togglePassword = document.getElementById('toggle-password');
+const passwordInput = document.getElementById('input-pass');
+togglePassword.addEventListener('click', function () {
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+    this.classList.toggle('fa-eye');
+    this.classList.toggle('fa-eye-slash');
+});
+
+const togglePasswordConfirm = document.getElementById('toggle-password-confirm');
+const passwordInputConfirm = document.getElementById('input-pass-confirm');
+togglePasswordConfirm.addEventListener('click', function () {
+    const type = passwordInputConfirm.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInputConfirm.setAttribute('type', type);
+    this.classList.toggle('fa-eye');
+    this.classList.toggle('fa-eye-slash');
+});
+</script>
+</body>
+</html>

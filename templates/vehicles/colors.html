@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('colors') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Manage car color palette in the database</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr;">
+    
+    <!-- Add Color Form -->
+    <div class="panel-card" style="height: fit-content;">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-plus text-primary"></i> {{ t('add') }}</h3>
+        </div>
+        <form action="/vehicles/colors" method="POST">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nom de la couleur</label>
+                <input type="text" name="name" class="form-control" placeholder="Blanc, Noir, Rouge..." required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+            <button type="submit" class="login-btn" style="background-color: #2563eb; width: 100%;">
+                <i class="fa-solid fa-floppy-disk"></i> {{ t('save') }}
+            </button>
+        </form>
+    </div>
+
+    <!-- Colors List Table -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-list text-primary"></i> Couleurs Enregistrées</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">ID</th>
+                        <th>Nom de la couleur</th>
+                        <th style="width: 20%; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if colors %}
+                        {% for color in colors %}
+                            <tr>
+                                <td style="font-weight: 600; color: #64748b;">#{{ color.id }}</td>
+                                <td style="font-weight: 600; color: #0f172a;">{{ color.name }}</td>
+                                <td style="text-align: center;">
+                                    <a href="/vehicles/colors/delete/{{ color.id }}" class="btn-action text-danger" onclick="return confirm('Voulez-vous vraiment supprimer cette couleur ?')" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; background-color: #fef2f2; color: #ef4444; text-decoration: none;">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: #94a3b8; padding: 25px;">
+                                Aucune couleur trouvée.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

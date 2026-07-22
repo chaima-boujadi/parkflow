@@ -1,0 +1,102 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Cairo:wght@400;600;700&display=swap');
+
+:root {
+    --primary-color: #1e3a8a;    /* Dark Blue Professional */
+    --accent-color: #3b82f6;     /* Light Blue */
+    --success-color: #10b981;    /* Available Green */
+    --danger-color: #ef4444;     /* Occupied Red */
+    --warning-color: #f59e0b;    /* VIP Gold */
+    --dark-bg: #0f172a;
+    --light-bg: #f8fafc;
+}
+
+body {
+    font-family: 'Inter', 'Cairo', sans-serif;
+    background-color: var(--light-bg);
+    color: #334155;
+    overflow-x: hidden;
+}
+
+/* Sidebar Custom Styling */
+.sidebar {
+    background-color: var(--dark-bg);
+    min-height: 100vh;
+    color: white;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar .nav-link {
+    color: #94a3b8;
+    font-weight: 500;
+    padding: 12px 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-bottom: 5px;
+}
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Dashboard Cards */
+.card-custom {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+    background-color: white;
+    transition: transform 0.2s;
+}
+
+.card-custom:hover {
+    transform: translateY(-2px);
+}
+
+/* Parking Grid Visual Panel (B7al screen.jpg) */
+.parking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 150px));
+    gap: 15px;
+    padding: 10px;
+}
+
+.spot-box {
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: 2px solid transparent;
+}
+
+.spot-box.available {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.spot-box.occupied {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+/* Support lil-Lougha l-Arabiya */
+body[dir="rtl"] {
+    text-align: right;
+}
+
+body[dir="rtl"] .sidebar {
+    box-shadow: -4px 0 10px rgba(0,0,0,0.1);
+}
+
+/* Clean Form Elements */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    padding: 10px 14px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}

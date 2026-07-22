@@ -1,0 +1,282 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('entry') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Enregistrer l'entrée d'un véhicule dans le parking</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+    
+    <!-- Entry Form -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-square-parking text-primary"></i> Enregistrer une Entrée</h3>
+        </div>
+        <form action="/parking/entry" method="POST" id="entry-form">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('plate') }} (Matricule) <span class="text-danger">*</span></label>
+                    <input type="text" name="matricule" required placeholder="Ex: 12345-A-15" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box; font-weight: 700; text-transform: uppercase;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('types') }} <span class="text-danger">*</span></label>
+                    <select name="vehicle_type_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                        <option value="">Sélectionner un type...</option>
+                        {% for vt in vehicle_types %}
+                            <option value="{{ vt.id }}">{{ vt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('brands') }} <span class="text-danger">*</span></label>
+                    <select name="brand_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                        <option value="">Sélectionner une marque...</option>
+                        {% for b in brands %}
+                            <option value="{{ b.id }}">{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('colors') }} <span class="text-danger">*</span></label>
+                    <select name="color_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                        <option value="">Sélectionner une couleur...</option>
+                        {% for c in colors %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('driver') }} (Optionnel)</label>
+                    <input type="text" name="owner_name" placeholder="Nom du conducteur" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('phone') }} (Optionnel)</label>
+                    <input type="text" name="phone" placeholder="0612345678" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('parking_type') }} <span class="text-danger">*</span></label>
+                    <select name="parking_type_id" id="select-parking-type" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                        <option value="">Choisir un type de parking...</option>
+                        {% for pt in parking_types %}
+                            <option value="{{ pt.id }}">{{ pt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 5px;">{{ t('duration') }} <span class="text-danger">*</span></label>
+                    <select name="duration" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                        <option value="under_24h" selected>Moins de 24 heures</option>
+                        <option value="24h">24 heures</option>
+                        <option value="over_24h">Plus de 24 heures</option>
+                        <option value="long_term">Longue durée</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- SERVICES OPTIONNELS -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 10px;">
+                    <i class="fa-solid fa-sparkles text-primary"></i> Services Optionnels (Services demandés) :
+                </label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                    {% for svc in services %}
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; transition: all 0.2s ease;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="services" value="{{ svc.id }}" id="svc-{{ svc.id }}" style="cursor: pointer; width: 16px; height: 16px;">
+                            <label for="svc-{{ svc.id }}" style="font-size: 12.5px; font-weight: 500; color: #334155; cursor: pointer;">
+                                <i class="fa-solid {{ svc.icon or 'fa-concierge-bell' }} text-primary" style="width: 16px; text-align: center;"></i> {{ svc.name }}
+                            </label>
+                        </div>
+                        <span style="font-size: 12px; font-weight: 700; color: #1e3a8a; background: #eff6ff; padding: 2px 6px; border-radius: 4px;">+{{ format_price(svc.price) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- PROPOSED PLACE AND OVERRIDE DROPDOWN -->
+            <div id="place-selection-block" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px; display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div>
+                        <span style="font-size: 13px; font-weight: 600; color: #475569;">Bouton / Place proposée :</span>
+                        <div id="proposed-spot-badge" style="font-size: 18px; font-weight: 700; color: #1e3a8a; margin-top: 4px;">
+                            Chargement...
+                        </div>
+                    </div>
+                    <span class="badge-status badge-success">DISPONIBLE</span>
+                </div>
+                
+                <div style="margin-top: 10px;">
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px;">Changer de place (Override) :</label>
+                    <select name="place_id" id="select-spot-override" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; cursor: pointer;">
+                        <!-- Filled by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn" style="background-color: #10b981; width: 100%; font-size: 15px; padding: 12px;">
+                <i class="fa-solid fa-ticket"></i> {{ t('submit_entry') }} & Générer Ticket
+            </button>
+        </form>
+    </div>
+
+    <!-- Right Side Information Panel -->
+    <div class="panel-card" style="height: fit-content;">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-circle-info text-primary"></i> Infos Météo & Vols</h3>
+        </div>
+        <div style="text-align: center; padding: 10px 0;">
+            <i class="fa-solid fa-cloud-sun" style="font-size: 40px; color: #f59e0b; margin-bottom: 10px;"></i>
+            <h4 style="font-size: 16px; margin-bottom: 4px;">Essaouira Mogador</h4>
+            <p style="font-size: 13px; color: #64748b;">Température : 24°C - Ensoleillé</p>
+        </div>
+        <div style="margin-top: 15px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+            <div style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 8px;">Derniers Vols ESU :</div>
+            <div style="font-size: 11.5px; color: #64748b; margin-bottom: 4px;">✈️ RAM AT930 - 14:15 - Arrivé</div>
+            <div style="font-size: 11.5px; color: #64748b;">✈️ Ryanair FR2684 - 17:30 - Programmé</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- TICKET PRINT POPUP MODAL -->
+{% if print_session %}
+<div id="printModal" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 3000; align-items: center; justify-content: center;">
+    <div style="background: white; width: 340px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;">
+        
+        <div id="ticket-print-area" style="padding: 24px; font-family: 'Inter', monospace; background: white; color: #000; text-align: center;">
+            <div style="font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">Aéroport Essaouira Mogador</div>
+            <div style="font-size: 11px; margin-bottom: 15px;">ParkFlow Airport Parking System</div>
+            <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 8px 0; margin-bottom: 15px;">
+                <span style="font-size: 11px; text-transform: uppercase;">Ticket d'entrée</span><br>
+                <span style="font-size: 20px; font-weight: 700; letter-spacing: 1px;">TK-{{ "%06d"|format(print_session.id) }}</span>
+            </div>
+            
+            <div style="text-align: left; font-size: 12px; line-height: 1.6; margin-bottom: 15px;">
+                <strong>Matricule :</strong> {{ print_session.matricule }}<br>
+                <strong>Véhicule :</strong> {{ print_session.brand_name }} ({{ print_session.color_name }})<br>
+                <strong>Catégorie :</strong> {{ print_session.type_name }}<br>
+                <strong>Zone :</strong> {{ print_session.zone_name }}<br>
+                <strong>Place affectée :</strong> <span style="font-size: 14px; font-weight: 700;">{{ print_session.place_number }}</span><br>
+                <strong>Entrée :</strong> {{ print_session.entry_datetime }}<br>
+                <strong>Propriétaire :</strong> {{ print_session.owner_name or 'N/A' }}
+            </div>
+            
+            <div style="font-size: 10px; margin-top: 15px; border-top: 1px dashed #000; padding-top: 10px;">
+                Veuillez conserver ce ticket.<br>
+                Tarif calculé à la sortie.
+            </div>
+        </div>
+
+        <div style="display: flex; border-top: 1px solid #e2e8f0;">
+            <button onclick="window.print()" style="flex: 1; padding: 14px; background: #2563eb; color: white; border: none; font-weight: 600; cursor: pointer; font-size: 14px;">
+                <i class="fa-solid fa-print"></i> Imprimer
+            </button>
+            <button onclick="closePrintModal()" style="flex: 1; padding: 14px; background: #f1f5f9; color: #334155; border: none; font-weight: 600; cursor: pointer; font-size: 14px;">
+                Fermer
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const ptSelect = document.getElementById('select-parking-type');
+    const placeBlock = document.getElementById('place-selection-block');
+    const proposedBadge = document.getElementById('proposed-spot-badge');
+    const overrideSelect = document.getElementById('select-spot-override');
+
+    if (ptSelect) {
+        ptSelect.addEventListener('change', (e) => {
+            const parkingTypeId = e.target.value;
+            if (!parkingTypeId) {
+                placeBlock.style.display = 'none';
+                return;
+            }
+
+            // 1. Get proposed spot
+            fetch('/api/propose-spot?parking_type_id=' + parkingTypeId)
+                .then(res => res.json())
+                .then(data => {
+                    placeBlock.style.display = 'block';
+                    if (data.success) {
+                        proposedBadge.innerText = `${data.zone_name} - Place : ${data.place_number}`;
+                    } else {
+                        proposedBadge.innerText = "Aucune place libre !";
+                    }
+                });
+
+            // 2. Load spots into override select
+            fetch('/api/available-spots?parking_type_id=' + parkingTypeId)
+                .then(res => res.json())
+                .then(data => {
+                    overrideSelect.innerHTML = '';
+                    if (data.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = "";
+                        opt.innerText = "Aucune place disponible";
+                        overrideSelect.appendChild(opt);
+                    } else {
+                        data.forEach((s, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = s.id;
+                            opt.innerText = `${s.zone_name} - ${s.place_number}`;
+                            if (idx === 0) opt.selected = true; // Match the proposed one
+                            overrideSelect.appendChild(opt);
+                        });
+                    }
+                });
+        });
+    }
+
+    function closePrintModal() {
+        const modal = document.getElementById('printModal');
+        if (modal) {
+            modal.style.display = 'none';
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+</script>
+
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #printModal, #printModal *, #ticket-print-area, #ticket-print-area * {
+            visibility: visible;
+        }
+        #printModal {
+            position: absolute;
+            inset: 0;
+            background: none;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        #printModal button {
+            display: none !important;
+        }
+        #ticket-print-area {
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+        }
+    }
+</style>
+{% endblock %}

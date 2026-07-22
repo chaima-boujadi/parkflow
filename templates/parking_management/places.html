@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('places') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Configure individual parking spots in zones</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr;">
+    
+    <!-- Add Place Form -->
+    <div class="panel-card" style="height: fit-content;">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-plus text-primary"></i> Ajouter Place</h3>
+        </div>
+        <form action="/parking-management/places" method="POST">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Numéro de place</label>
+                <input type="text" name="place_number" class="form-control" placeholder="A001, VIP-01..." required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Zone</label>
+                <select name="zone_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="">Sélectionner une zone...</option>
+                    {% for zone in zones %}
+                        <option value="{{ zone.id }}">{{ zone.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Type de Parking</label>
+                <select name="parking_type_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="">Sélectionner un tarif...</option>
+                    {% for pt in parking_types %}
+                        <option value="{{ pt.id }}">{{ pt.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Statut Initial</label>
+                <select name="status" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="FREE" selected>Disponible</option>
+                    <option value="MAINTENANCE">Maintenance</option>
+                    <option value="RESERVED">Réservée</option>
+                </select>
+            </div>
+
+            <button type="submit" class="login-btn" style="background-color: #2563eb; width: 100%;">
+                <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+            </button>
+        </form>
+    </div>
+
+    <!-- Places List -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-list text-primary"></i> Places de stationnement</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Numéro de place</th>
+                        <th>Zone</th>
+                        <th>Type Tarifaire</th>
+                        <th style="text-align: center;">Statut</th>
+                        <th style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if places %}
+                        {% for place in places %}
+                            <tr>
+                                <td style="font-weight: 700; color: #1e3a8a;">{{ place.place_number }}</td>
+                                <td style="font-weight: 600; color: #475569;">{{ place.zone_name }}</td>
+                                <td><span style="font-weight: 500; color: #1e293b;">{{ place.type_name }}</span></td>
+                                <td style="text-align: center;">
+                                    {% if place.status == 'FREE' %}
+                                        <span class="badge-status badge-success">Disponible</span>
+                                    {% elif place.status == 'OCCUPIED' %}
+                                        <span class="badge-status badge-danger">Occupée</span>
+                                    {% elif place.status == 'MAINTENANCE' %}
+                                        <span class="badge-status" style="background-color: #fff7ed; color: #c2410c;">Maintenance</span>
+                                    {% else %}
+                                        <span class="badge-status" style="background-color: #f3e8ff; color: #6b21a8;">Réservée</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center; display: flex; gap: 6px; justify-content: center;">
+                                    <button onclick="openEditModal({{ place.id }}, '{{ place.place_number }}', {{ place.zone_id }}, {{ place.parking_type_id }}, '{{ place.status }}')" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; border: none; background-color: #eff6ff; color: #2563eb; cursor: pointer;">
+                                        <i class="fa-regular fa-pen-to-square"></i>
+                                    </button>
+                                    <a href="/parking-management/places/delete/{{ place.id }}" class="btn-action text-danger" onclick="return confirm('Voulez-vous vraiment supprimer cette place ?')" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; background-color: #fef2f2; color: #ef4444; text-decoration: none;">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #94a3b8; padding: 25px;">
+                                Aucune place enregistrée.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="panel-card" style="width: 360px; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div class="panel-header" style="margin-bottom: 15px;">
+            <h3 class="panel-title">Modifier la Place</h3>
+            <button onclick="closeEditModal()" style="border: none; background: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+        <form id="editForm" method="POST">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Numéro de place</label>
+                <input type="text" name="place_number" id="modal-number" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Zone</label>
+                <select name="zone_id" id="modal-zone" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    {% for zone in zones %}
+                        <option value="{{ zone.id }}">{{ zone.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Type de Parking</label>
+                <select name="parking_type_id" id="modal-type" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    {% for pt in parking_types %}
+                        <option value="{{ pt.id }}">{{ pt.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Statut</label>
+                <select name="status" id="modal-status" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="FREE">Disponible</option>
+                    <option value="OCCUPIED">Occupée</option>
+                    <option value="MAINTENANCE">Maintenance</option>
+                    <option value="RESERVED">Réservée</option>
+                </select>
+            </div>
+
+            <button type="submit" class="login-btn" style="background-color: #2563eb; width: 100%;">
+                <i class="fa-solid fa-floppy-disk"></i> Modifier
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditModal(id, number, zoneId, typeId, status) {
+        document.getElementById('editForm').action = '/parking-management/places/edit/' + id;
+        document.getElementById('modal-number').value = number;
+        document.getElementById('modal-zone').value = zoneId;
+        document.getElementById('modal-type').value = typeId;
+        document.getElementById('modal-status').value = status;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

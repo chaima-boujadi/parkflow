@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('zones') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Configure parking zones, descriptions, and statuses</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr;">
+    
+    <!-- Add Zone Form -->
+    <div class="panel-card" style="height: fit-content;">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-plus text-primary"></i> Ajouter Zone</h3>
+        </div>
+        <form action="/parking-management/zones" method="POST">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Nom de la zone</label>
+                <input type="text" name="name" class="form-control" placeholder="Zone A, Zone VIP..." required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Description</label>
+                <input type="text" name="description" class="form-control" placeholder="Parking principal..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Statut</label>
+                <select name="status" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="ACTIVE" selected>Active</option>
+                    <option value="INACTIVE">Désactivée</option>
+                </select>
+            </div>
+
+            <button type="submit" class="login-btn" style="background-color: #2563eb; width: 100%;">
+                <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+            </button>
+        </form>
+    </div>
+
+    <!-- Zones List -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-list text-primary"></i> Zones de Stationnement</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Nom de la zone</th>
+                        <th>Description</th>
+                        <th style="text-align: center;">Places Totales</th>
+                        <th style="text-align: center;">Places Libres</th>
+                        <th style="text-align: center;">Statut</th>
+                        <th style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if zones %}
+                        {% for zone in zones %}
+                            <tr>
+                                <td style="font-weight: 700; color: #0f172a;">{{ zone.name }}</td>
+                                <td style="color: #64748b; font-size: 13px;">{{ zone.description or 'Aucune description' }}</td>
+                                <td style="text-align: center; font-weight: 600;">{{ zone.total_spots }}</td>
+                                <td style="text-align: center; font-weight: 600; color: #10b981;">{{ zone.free_spots }}</td>
+                                <td style="text-align: center;">
+                                    <span class="badge-status {% if zone.status == 'ACTIVE' %}badge-success{% else %}badge-danger{% endif %}">
+                                        {{ zone.status }}
+                                    </span>
+                                </td>
+                                <td style="text-align: center; display: flex; gap: 6px; justify-content: center;">
+                                    <button onclick="openEditModal({{ zone.id }}, '{{ zone.name }}', '{{ zone.description }}', '{{ zone.status }}')" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; border: none; background-color: #eff6ff; color: #2563eb; cursor: pointer;">
+                                        <i class="fa-regular fa-pen-to-square"></i>
+                                    </button>
+                                    <a href="/parking-management/zones/delete/{{ zone.id }}" class="btn-action text-danger" onclick="return confirm('Voulez-vous vraiment supprimer cette zone ?')" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; background-color: #fef2f2; color: #ef4444; text-decoration: none;">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #94a3b8; padding: 25px;">
+                                Aucune zone configurée.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="panel-card" style="width: 360px; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div class="panel-header" style="margin-bottom: 15px;">
+            <h3 class="panel-title">Modifier la Zone</h3>
+            <button onclick="closeEditModal()" style="border: none; background: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+        <form id="editForm" method="POST">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Nom de la zone</label>
+                <input type="text" name="name" id="modal-name" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Description</label>
+                <input type="text" name="description" id="modal-desc" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Statut</label>
+                <select name="status" id="modal-status" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Désactivée</option>
+                </select>
+            </div>
+
+            <button type="submit" class="login-btn" style="background-color: #2563eb; width: 100%;">
+                <i class="fa-solid fa-floppy-disk"></i> Modifier
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditModal(id, name, desc, status) {
+        document.getElementById('editForm').action = '/parking-management/zones/edit/' + id;
+        document.getElementById('modal-name').value = name;
+        document.getElementById('modal-desc').value = desc;
+        document.getElementById('modal-status').value = status;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

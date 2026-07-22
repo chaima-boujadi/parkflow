@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('active_parking') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Véhicules actuellement stationnés · Mise à jour : {{ now }}</p>
+</div>
+
+<!-- ======= SUMMARY COUNTERS ======= -->
+<div class="stats-grid" style="margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg,#6366f1,#818cf8);">
+            <i class="fa-solid fa-square-parking"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-label">Total Places</span>
+            <span class="stat-value">{{ total_spots }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#34d399);">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-label">Disponibles</span>
+            <span class="stat-value">{{ free_spots }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg,#ef4444,#f87171);">
+            <i class="fa-solid fa-car"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-label">Occupées</span>
+            <span class="stat-value">{{ occupied_spots }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg,#f59e0b,#fbbf24);">
+            <i class="fa-solid fa-wrench"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-label">Maintenance</span>
+            <span class="stat-value">{{ maintenance_spots }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- ======= LIVE SESSIONS TABLE ======= -->
+<div class="panel-card">
+    <div class="panel-header">
+        <h3 class="panel-title"><i class="fa-solid fa-cars text-primary"></i> Véhicules à l'intérieur</h3>
+        <a href="/parking/entry" class="login-btn" style="background-color: #10b981; padding: 8px 18px; font-size: 13px; text-decoration: none;">
+            <i class="fa-solid fa-plus"></i> Nouvelle Entrée
+        </a>
+    </div>
+
+    {% if active_sessions %}
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Matricule</th>
+                    <th>Véhicule</th>
+                    <th>Zone / Place</th>
+                    <th>Type</th>
+                    <th>Heure d'entrée</th>
+                    <th style="text-align:center;">Durée</th>
+                    <th style="text-align:center;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="active-table-body">
+                {% for s in active_sessions %}
+                <tr>
+                    <td>
+                        <span style="font-weight:700; color:#1e3a8a; font-size:13px;">TK-{{ "%06d"|format(s.id) }}</span>
+                    </td>
+                    <td style="font-weight:700; color:#b45309; font-size:14px;">{{ s.matricule }}</td>
+                    <td>
+                        <div style="font-weight:600; color:#0f172a;">{{ s.brand_name or 'N/A' }}</div>
+                        <div style="font-size:11px; color:#64748b;">{{ s.color_name or '' }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">{{ s.zone_name }}</div>
+                        <div style="font-size:11px; color:#2563eb; font-weight:700;">{{ s.place_number }}</div>
+                    </td>
+                    <td style="font-size:12px; color:#475569;">{{ s.ptype_name }}</td>
+                    <td style="font-size:12.5px; color:#475569;">{{ s.entry_datetime }}</td>
+                    <td style="text-align:center;">
+                        <span class="elapsed-timer badge-status" style="background:#fef3c7; color:#92400e; font-weight:700; font-size:12px;"
+                              data-entry="{{ s.entry_datetime }}">--:--</span>
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="/parking/exit?search=TK-{{ '%06d'|format(s.id) }}"
+                           style="display:inline-flex;align-items:center;gap:4px;background:#dc2626;color:white;padding:5px 12px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sortie
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:50px 20px; color:#94a3b8;">
+        <i class="fa-solid fa-parking" style="font-size:48px; margin-bottom:14px; opacity:0.4;"></i>
+        <h3 style="font-size:16px; font-weight:600; margin-bottom:6px;">Aucun véhicule stationné</h3>
+        <p style="font-size:13px;">Le parking est entièrement libre en ce moment.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /* Timer en temps réel pour chaque véhicule stationné */
+    function updateTimers() {
+        document.querySelectorAll('.elapsed-timer').forEach(el => {
+            const entryStr = el.dataset.entry;
+            const entry    = new Date(entryStr.replace(' ', 'T'));
+            const now      = new Date();
+            const diffMs   = now - entry;
+            if (diffMs < 0) { el.textContent = '00:00'; return; }
+
+            const totalMins = Math.floor(diffMs / 60000);
+            const hours     = Math.floor(totalMins / 60);
+            const mins      = totalMins % 60;
+            el.textContent  = String(hours).padStart(2,'0') + 'h ' + String(mins).padStart(2,'0') + 'm';
+
+            /* Coloration selon durée */
+            if (hours >= 24) {
+                el.style.background = '#fef2f2';
+                el.style.color      = '#dc2626';
+            } else if (hours >= 12) {
+                el.style.background = '#fff7ed';
+                el.style.color      = '#c2410c';
+            }
+        });
+    }
+    updateTimers();
+    setInterval(updateTimers, 60000); /* Refresh every minute */
+</script>
+{% endblock %}

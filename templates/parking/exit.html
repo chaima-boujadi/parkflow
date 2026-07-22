@@ -1,0 +1,242 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('exit') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Rechercher une session en cours et enregistrer la sortie</p>
+</div>
+
+<!-- ======= SEARCH BAR ======= -->
+<div class="panel-card" style="margin-bottom: 24px;">
+    <form action="/parking/exit" method="GET" style="display: flex; gap: 12px; align-items: flex-end;">
+        <div style="flex: 1;">
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                <i class="fa-solid fa-magnifying-glass"></i> Rechercher par Ticket (TK-XXXXXX) ou Matricule
+            </label>
+            <input type="text" name="search" value="{{ search_query }}"
+                   placeholder="Ex: TK-000003  ou  12345-A-15"
+                   style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 600; box-sizing: border-box; letter-spacing: 0.5px;">
+        </div>
+        <button type="submit" class="login-btn" style="background-color: #2563eb; padding: 11px 28px; height: fit-content; white-space: nowrap;">
+            <i class="fa-solid fa-search"></i> Rechercher
+        </button>
+    </form>
+</div>
+
+<!-- ======= SESSION DETAILS + PAYMENT FORM ======= -->
+{% if search_query and found_session %}
+<div class="dashboard-grid" style="grid-template-columns: 3fr 2fr;">
+
+    <!-- Session Details Card -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-car text-primary"></i> Détails de la Session</h3>
+            <span class="badge-status badge-danger" style="font-size: 13px;">STATIONNÉE</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+            <div style="background: #f0f9ff; border-radius: 10px; padding: 12px;">
+                <div style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">TICKET</div>
+                <div style="font-size: 20px; font-weight: 800; color: #1e3a8a; letter-spacing: 1px;">TK-{{ "%06d"|format(found_session.id) }}</div>
+            </div>
+            <div style="background: #fef9ee; border-radius: 10px; padding: 12px;">
+                <div style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px;">MATRICULE</div>
+                <div style="font-size: 20px; font-weight: 800; color: #b45309;">{{ found_session.matricule }}</div>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Propriétaire</td>
+                <td style="padding: 9px 0; font-weight: 700; text-align: right;">{{ found_session.owner_name or 'Inconnu' }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Véhicule</td>
+                <td style="padding: 9px 0; font-weight: 700; text-align: right;">{{ found_session.brand_name }} – {{ found_session.color_name }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Zone / Place</td>
+                <td style="padding: 9px 0; font-weight: 700; text-align: right;">{{ found_session.zone_name }} – <span style="color: #1e3a8a;">{{ found_session.place_number }}</span></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Entrée</td>
+                <td style="padding: 9px 0; font-weight: 700; text-align: right;">{{ found_session.entry_datetime }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Durée calculée</td>
+                <td style="padding: 9px 0; font-weight: 800; text-align: right; color: #7c3aed;">{{ found_session.calc_hours }} heure(s)</td>
+            </tr>
+            {% if found_session.services %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Base Stationnement</td>
+                <td style="padding: 9px 0; font-weight: 700; text-align: right;">{{ format_price(found_session.calc_parking_price) }}</td>
+            </tr>
+            {% for svc in found_session.services %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 6px 0 6px 12px; color: #64748b; font-size: 12.5px;">+ {{ svc.name }}</td>
+                <td style="padding: 6px 0; font-weight: 600; text-align: right; font-size: 12.5px; color: #475569;">{{ format_price(svc.price) }}</td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+            <tr>
+                <td style="padding: 12px 0; color: #0f172a; font-weight: 700; font-size: 15px;">MONTANT TOTAL DÛ</td>
+                <td style="padding: 12px 0; font-weight: 800; text-align: right; font-size: 18px; color: #dc2626;">
+                    {{ format_price(found_session.calc_price) }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Payment & Confirm Card -->
+    <div>
+        <div class="panel-card" style="height: fit-content;">
+            <div class="panel-header">
+                <h3 class="panel-title"><i class="fa-solid fa-money-bill-wave text-primary"></i> Paiement & Sortie</h3>
+            </div>
+            <form action="/parking/exit" method="POST">
+                <!-- Hidden Fields -->
+                <input type="hidden" name="session_id"     value="{{ found_session.id }}">
+                <input type="hidden" name="place_id"       value="{{ found_session.place_id }}">
+                <input type="hidden" name="total_price"    value="{{ found_session.calc_price }}">
+                <input type="hidden" name="duration_hours" value="{{ found_session.calc_hours }}">
+
+                <!-- Montant affiché -->
+                <div style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 18px; color: white;">
+                    <div style="font-size: 12px; font-weight: 600; opacity: 0.85; margin-bottom: 4px;">MONTANT TOTAL</div>
+                    <div style="font-size: 30px; font-weight: 900; letter-spacing: 0.5px;">
+                        {{ format_price(found_session.calc_price) }}
+                    </div>
+                    <div style="font-size: 12px; opacity: 0.75; margin-top: 6px;">{{ found_session.calc_hours }} h de stationnement</div>
+                </div>
+
+
+                <!-- Méthode de paiement -->
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 8px;">Méthode de paiement</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="payment-methods">
+                        <label class="pay-method-btn active" for="m-cash" style="display: flex; flex-direction: column; align-items: center; padding: 10px 6px; border: 2px solid #2563eb; border-radius: 10px; cursor: pointer; background: #eff6ff; transition: all 0.2s;">
+                            <input type="radio" name="payment_method" id="m-cash" value="CASH" checked style="display: none;">
+                            <i class="fa-solid fa-money-bill-wave" style="font-size: 18px; color: #16a34a; margin-bottom: 4px;"></i>
+                            <span style="font-size: 11px; font-weight: 600; color: #0f172a;">Espèces</span>
+                        </label>
+                        <label class="pay-method-btn" for="m-card" style="display: flex; flex-direction: column; align-items: center; padding: 10px 6px; border: 2px solid #e2e8f0; border-radius: 10px; cursor: pointer; background: white; transition: all 0.2s;">
+                            <input type="radio" name="payment_method" id="m-card" value="CARD" style="display: none;">
+                            <i class="fa-solid fa-credit-card" style="font-size: 18px; color: #2563eb; margin-bottom: 4px;"></i>
+                            <span style="font-size: 11px; font-weight: 600; color: #0f172a;">Carte</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn" style="background-color: #dc2626; width: 100%; font-size: 15px; padding: 13px;"
+                        onclick="return confirm('Confirmer la sortie et le paiement ?')">
+                    <i class="fa-solid fa-right-from-bracket"></i> Confirmer Sortie & Paiement
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% elif search_query and not found_session %}
+<!-- Not Found Alert -->
+<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 20px; text-align: center; color: #991b1b;">
+    <i class="fa-solid fa-circle-xmark" style="font-size: 30px; margin-bottom: 10px;"></i>
+    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">Aucune session trouvée</h3>
+    <p style="font-size: 13px;">Vérifiez le numéro de ticket ou le matricule et réessayez.</p>
+</div>
+{% endif %}
+
+<!-- ======= RECEIPT MODAL (after exit confirmed) ======= -->
+{% if receipt_session %}
+<div id="receiptModal" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 3000; align-items: center; justify-content: center;">
+    <div style="background: white; width: 360px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;">
+
+        <div id="receipt-print-area" style="padding: 28px; font-family: 'Courier New', monospace; background: white; color: #000;">
+            <div style="text-align: center; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 700; text-transform: uppercase;">Aéroport Essaouira Mogador</div>
+                <div style="font-size: 11px; color: #555;">ParkFlow Airport Parking System</div>
+                <div style="margin: 12px 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 8px 0;">
+                    <span style="font-size: 11px; text-transform: uppercase;">Reçu de Sortie</span><br>
+                    <span style="font-size: 22px; font-weight: 800; letter-spacing: 1px;">TK-{{ "%06d"|format(receipt_session.id) }}</span>
+                </div>
+            </div>
+
+            <div style="font-size: 12.5px; line-height: 1.8;">
+                <strong>Matricule :</strong> {{ receipt_session.matricule }}<br>
+                <strong>Véhicule :</strong> {{ receipt_session.brand_name }} – {{ receipt_session.color_name }}<br>
+                <strong>Zone / Place :</strong> {{ receipt_session.zone_name }} – {{ receipt_session.place_number }}<br>
+                <strong>Entrée :</strong> {{ receipt_session.entry_datetime }}<br>
+                <strong>Sortie :</strong> {{ receipt_session.exit_datetime }}<br>
+                <strong>Durée :</strong> {{ receipt_session.duration_hours }} heure(s)<br>
+                <strong>Type :</strong> {{ receipt_session.ptype_name }}<br>
+            </div>
+
+            {% if receipt_session.services %}
+            <div style="margin: 10px 0; border-top: 1px dashed #000; padding-top: 10px;">
+                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">Services Demandés :</div>
+                {% for svc in receipt_session.services %}
+                <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: monospace;">
+                    <span>* {{ svc.name }}</span>
+                    <span>{{ format_price(svc.price) }}</span>
+                </div>
+                {% endfor %}
+                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px; font-weight: 700; font-family: monospace;">
+                    <span>Base Stationnement :</span>
+                    <span>{{ format_price(receipt_session.parking_price) }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin: 14px 0; border-top: 1px dashed #000;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; font-weight: 700;">TOTAL PAYÉ</span>
+                <span style="font-size: 22px; font-weight: 900;">{{ format_price(receipt_session.total_price) }}</span>
+            </div>
+            <div style="margin: 14px 0; border-top: 1px dashed #000;"></div>
+
+            <div style="text-align: center; font-size: 10.5px; color: #555; margin-top: 10px;">
+                Merci pour votre visite.<br>
+                ParkFlow – Parking Intelligent
+            </div>
+        </div>
+
+        <div style="display: flex; border-top: 1px solid #e2e8f0;">
+            <button onclick="window.print()" style="flex: 1; padding: 14px; background: #2563eb; color: white; border: none; font-weight: 700; cursor: pointer; font-size: 14px;">
+                <i class="fa-solid fa-print"></i> Imprimer
+            </button>
+            <a href="/parking/exit" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 14px; background: #f1f5f9; color: #334155; text-decoration: none; font-weight: 700; font-size: 14px;">
+                Nouvelle Sortie
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /* Highlight selected payment method */
+    document.querySelectorAll('.pay-method-btn').forEach(label => {
+        label.addEventListener('click', () => {
+            document.querySelectorAll('.pay-method-btn').forEach(l => {
+                l.style.border = '2px solid #e2e8f0';
+                l.style.background = 'white';
+            });
+            label.style.border = '2px solid #2563eb';
+            label.style.background = '#eff6ff';
+        });
+    });
+</script>
+
+<style>
+    @media print {
+        body * { visibility: hidden; }
+        #receiptModal, #receiptModal *, #receipt-print-area, #receipt-print-area * { visibility: visible; }
+        #receiptModal {
+            position: absolute; inset: 0;
+            background: none;
+            display: flex; align-items: flex-start; justify-content: center;
+        }
+        #receiptModal button, #receiptModal a { display: none !important; }
+    }
+</style>
+{% endblock %}

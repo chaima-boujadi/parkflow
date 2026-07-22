@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkFlow | Login</title>
+    <link class="style-link" rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+
+    <div class="center-wrapper">
+        <div class="login-card">
+            <img src="{{ url_for('static', filename='images/login-logo.png') }}" class="logo" alt="Morocco Airport Logo">
+            
+            <h2 id="welcome-title">Welcome Back</h2>
+            <p class="subtitle" id="welcome-subtitle">Login to your account</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}" style="color: {% if category == 'danger' %}#ef4444{% else %}#10b981{% endif %}; margin-bottom: 15px; text-align: center;">
+                    {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <form action="/login" method="POST">
+                <div class="input-box">
+                    <i class="fa-regular fa-user"></i>
+                    <input type="text" name="username" id="input-user" placeholder="Username" required>
+                </div>
+
+                <div class="input-box">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" name="password" id="input-pass" placeholder="Password" required>
+                    <i class="fa-regular fa-eye eye" style="cursor: pointer;" id="toggle-password"></i>
+                </div>
+
+                <div class="options">
+                    <label>
+                        <input type="checkbox" name="remember" value="true"> <span id="label-remember">Remember me</span>
+                    </label>
+                    <a href="/forgot-password" id="link-forgot">Forgot password?</a>
+                </div>
+
+                <button class="login-btn" type="submit">
+                    <i class="fa-solid fa-right-to-bracket"></i> <span id="btn-login">Login</span>
+                </button>
+            </form>
+
+            <div class="separator">
+                <span id="sep-text">OR</span>
+            </div>
+
+            <div class="social-login">
+                <button type="button" class="social-btn google-btn" onclick="alert('Google Auth Mock')">
+                    <i class="fa-brands fa-google"></i> <span id="btn-google">Continue with Google</span>
+                </button>
+                <button type="button" class="social-btn email-btn" onclick="alert('Email Verification Mock')">
+                    <i class="fa-regular fa-envelope"></i> <span id="btn-email-link">Continue with Email</span>
+                </button>
+            </div>
+
+            <div class="register-section" style="margin-top: 18px; font-size: 13px; color: #64748b;">
+                <span id="text-no-account">Don't have an account?</span>
+                <a href="/register" id="btn-register" style="color: #3b82f6; text-decoration: none; font-weight: 600; margin-left: 4px;">Create New Account</a>
+            </div>
+
+            <div class="footer">
+                ParkFlow © 2026 Airport Smart Parking System
+            </div>
+        </div>
+
+        <div class="language-box">
+            <button class="lang active" onclick="changeLanguage('en')">GB English</button>
+            <button class="lang" onclick="changeLanguage('fr')">FR Français</button>
+            <button class="lang" onclick="changeLanguage('ar')">MA العربية</button>
+        </div>
+
+    </div>
+    <script>
+const translations = {
+    en: {
+        welcome: "Welcome Back",
+        subtitle: "Login to your account",
+        user: "Username or Email",
+        pass: "Password",
+        remember: "Remember me",
+        forgot: "Forgot password?",
+        login: "Login",
+        register: "Create New Account",
+        google: "Continue with Google",
+        email: "Continue with Email",
+        or: "OR",
+        noaccount: "Don't have an account?",
+        dir: "ltr"
+    },
+    fr: {
+        welcome: "Bon Retour",
+        subtitle: "Connectez-vous à votre compte",
+        user: "Nom d'utilisateur ou Email",
+        pass: "Mot de passe",
+        remember: "Se souvenir de moi",
+        forgot: "Mot de passe oublié ?",
+        login: "Se connecter",
+        register: "Créer un nouveau compte",
+        google: "Continuer avec Google",
+        email: "Continuer avec l'Email",
+        or: "OU",
+        noaccount: "Vous n'avez pas de compte ?",
+        dir: "ltr"
+    },
+    ar: {
+        welcome: "مرحباً بعودتك",
+        subtitle: "تسجيل الدخول إلى حسابك",
+        user: "اسم المستخدم أو البريد الإلكتروني",
+        pass: "كلمة المرور",
+        remember: "تذكرني",
+        forgot: "هل نسيت كلمة المرور؟",
+        login: "تسجيل الدخول",
+        register: "إنشاء حساب جديد",
+        google: "المتابعة باستخدام Google",
+        email: "المتابعة باستخدام البريد الإلكتروني",
+        or: "أو",
+        noaccount: "ليس لديك حساب؟",
+        dir: "rtl"
+    }
+};
+
+function changeLanguage(lang) {
+    document.getElementById('welcome-title').innerText = translations[lang].welcome;
+    document.getElementById('welcome-subtitle').innerText = translations[lang].subtitle;
+    document.getElementById('input-user').placeholder = translations[lang].user;
+    document.getElementById('input-pass').placeholder = translations[lang].pass;
+    document.getElementById('label-remember').innerText = translations[lang].remember;
+    document.getElementById('link-forgot').innerText = translations[lang].forgot;
+    document.getElementById('btn-login').innerText = translations[lang].login;
+    document.getElementById('btn-register').innerText = translations[lang].register;
+    document.getElementById('btn-google').innerText = translations[lang].google;
+    document.getElementById('btn-email-link').innerText = translations[lang].email;
+    document.getElementById('sep-text').innerText = translations[lang].or;
+    document.getElementById('text-no-account').innerText = translations[lang].noaccount;
+    
+    document.body.style.direction = translations[lang].dir;
+
+    document.querySelectorAll('.lang').forEach(btn => btn.classList.remove('active'));
+    const currentBtn = Array.from(document.querySelectorAll('.lang')).find(btn => btn.getAttribute('onclick').includes(lang));
+    if (currentBtn) {
+        currentBtn.classList.add('active');
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    changeLanguage('en');
+});
+
+// تشغيل وإخفاء الباسورد
+const togglePassword = document.getElementById('toggle-password');
+const passwordInput = document.getElementById('input-pass');
+
+if(togglePassword && passwordInput) {
+    togglePassword.addEventListener('click', function () {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+}
+</script>
+</body>
+</html>

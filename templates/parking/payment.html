@@ -1,0 +1,556 @@
+{% extends "layout.html" %}
+
+{% block extra_css %}
+<style>
+    .payment-container {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 24px;
+        margin-top: 20px;
+    }
+    .payment-method-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 12px;
+    }
+    .tab-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13.5px;
+        cursor: pointer;
+        border: 2px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+        border-color: #2563eb;
+        background: #eff6ff;
+        color: #2563eb;
+    }
+    .payment-tab-content {
+        display: none;
+    }
+    .payment-tab-content.active {
+        display: block;
+    }
+    
+    /* Stripe form styling */
+    #card-element {
+        border: 1.5px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 14px;
+        background: white;
+        margin-bottom: 16px;
+    }
+    .stripe-btn {
+        background-color: #2563eb;
+        color: white;
+        font-weight: 700;
+        border: none;
+        width: 100%;
+        padding: 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    .stripe-btn:hover {
+        background-color: #1d4ed8;
+    }
+    .stripe-btn:disabled {
+        background-color: #93c5fd;
+        cursor: not-allowed;
+    }
+    
+    /* QR code simulator */
+    .qr-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px dashed #cbd5e1;
+        margin-bottom: 16px;
+    }
+    
+    /* Gate animation modal */
+    .gate-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.95);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: white;
+    }
+    .barrier-wrapper {
+        position: relative;
+        width: 280px;
+        height: 180px;
+        margin-bottom: 30px;
+    }
+    .barrier-post {
+        position: absolute;
+        bottom: 0;
+        left: 40px;
+        width: 32px;
+        height: 80px;
+        background: #334155;
+        border-radius: 4px 4px 0 0;
+        border: 4px solid #475569;
+    }
+    .barrier-post::after {
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: 6px;
+        width: 12px;
+        height: 12px;
+        background: #ef4444;
+        border-radius: 50%;
+        box-shadow: 0 0 12px #ef4444;
+    }
+    .barrier-arm {
+        position: absolute;
+        bottom: 50px;
+        left: 56px;
+        width: 200px;
+        height: 14px;
+        background: repeating-linear-gradient(
+            45deg,
+            #ef4444,
+            #ef4444 15px,
+            #ffffff 15px,
+            #ffffff 30px
+        );
+        border-radius: 4px;
+        transform-origin: 0% 50%;
+        transform: rotate(0deg);
+        transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #b91c1c;
+    }
+    .gate-overlay.open .barrier-arm {
+        transform: rotate(-90deg);
+    }
+    .gate-overlay.open .barrier-post::after {
+        background: #10b981;
+        box-shadow: 0 0 15px #10b981;
+    }
+    .success-icon-animate {
+        font-size: 56px;
+        color: #10b981;
+        margin-bottom: 20px;
+        animation: scaleIn 0.5s ease-out;
+    }
+    @keyframes scaleIn {
+        0% { transform: scale(0); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 20px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">Paiement Électronique</h1>
+    <p style="font-size: 14px; color: #64748b;">Règlement sécurisé du ticket de parking (Test Mode)</p>
+</div>
+
+<div class="payment-container">
+    
+    <!-- Left panel: payment forms -->
+    <div class="panel-card" style="height: fit-content;">
+        <div class="payment-method-tabs">
+            <div class="tab-btn {% if method == 'CARD' %}active{% endif %}" onclick="switchTab('card')">
+                <i class="fa-solid fa-credit-card"></i> Carte Bancaire
+            </div>
+            <div class="tab-btn {% if method == 'MOBILE' %}active{% endif %}" onclick="switchTab('mobile')">
+                <i class="fa-brands fa-apple-pay" style="font-size: 18px;"></i> / <i class="fa-brands fa-google-pay" style="font-size: 18px;"></i> Mobile
+            </div>
+            <div class="tab-btn" onclick="switchTab('qr')">
+                <i class="fa-solid fa-qrcode"></i> Code QR E-Pay
+            </div>
+        </div>
+        
+        <!-- === Tab 1: Stripe Card form === -->
+        <div id="tab-card" class="payment-tab-content {% if method == 'CARD' %}active{% endif %}">
+            <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Saisir les coordonnées de la carte</h3>
+            
+            <form id="payment-form">
+                <div id="link-authentication-element">
+                    <!-- Stripe.js injects the Link Authentication Element -->
+                </div>
+                <div id="card-element">
+                    <!-- Stripe.js injects the Card Element -->
+                </div>
+                
+                <div id="card-errors" role="alert" style="color: #ef4444; font-size: 12.5px; font-weight: 600; margin-bottom: 12px; display: none;"></div>
+                
+                <button id="submit-card" class="stripe-btn">
+                    <span id="button-text"><i class="fa-solid fa-lock"></i> Payer {{ format_price(total_price) }}</span>
+                    <span id="spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i> Traitement...</span>
+                </button>
+            </form>
+            
+            <div style="margin-top: 15px; font-size: 11.5px; color: #64748b; background: #f8fafc; border-radius: 8px; padding: 10px; border: 1px solid #e2e8f0;">
+                💡 <strong>Carte de Test :</strong> Utilisez la carte de test Stripe standard <span style="font-family: monospace; background: #e2e8f0; padding: 2px 4px; border-radius: 4px; font-weight: 700; color: #1e293b;">4242 4242 4242 4242</span> avec n'importe quelle date d'expiration future et n'importe quel code CVC.
+            </div>
+        </div>
+        
+        <!-- === Tab 2: Apple Pay / Google Pay === -->
+        <div id="tab-mobile" class="payment-tab-content {% if method == 'MOBILE' %}active{% endif %}">
+            <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Apple Pay / Google Pay</h3>
+            
+            <div id="payment-request-button">
+                <!-- Stripe.js injects the Payment Request Button -->
+            </div>
+            
+            <div id="pr-not-available" style="padding: 24px; text-align: center; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                <i class="fa-brands fa-apple" style="font-size: 28px; color: #64748b; margin-bottom: 8px;"></i>
+                <i class="fa-brands fa-google" style="font-size: 26px; color: #64748b; margin-left: 8px; margin-bottom: 8px;"></i>
+                <h4 style="font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 4px;">Paiement express non disponible</h4>
+                <p style="font-size: 12.5px; color: #64748b; max-width: 320px; margin: 0 auto;">Les boutons Apple Pay ou Google Pay ne s'affichent que sur les navigateurs et appareils compatibles disposant d'une carte configurée.</p>
+                <div style="margin-top: 15px;">
+                    <button class="stripe-btn" style="background-color: #7c3aed;" onclick="switchTab('qr')">
+                        <i class="fa-solid fa-qrcode"></i> Utiliser le simulateur QR Code
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- === Tab 3: QR Code Simulator === -->
+        <div id="tab-qr" class="payment-tab-content">
+            <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Scannez pour payer par Mobile</h3>
+            
+            <div class="qr-container">
+                <!-- Generates a premium looking SVG QR code directly -->
+                <svg width="150" height="150" viewBox="0 0 29 29" style="background: white; padding: 10px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 12px;">
+                    <path d="M0 0h7v7H0zm1 1v5h5V1zm8 0h3v1H9zm4 0h1v1h-1zm1 0h1v2h-1zm2 0h2v1h-2zm3 0h3v1h-3zm3 0h1v1h-1zm-15 3h1v1H2zm10 0h2v2h-2zm6 0h2v1h-2zm-12 1h1v1H1zm6 0h1v1H7zm11 0h2v2h-2zm2 0h1v1h-1zm-21 2h7v7H0zm1 1v5h5V8zm14 0h2v1h-2zm5 0h1v2h-1zm-6 2h1v1h-1zm2 0h2v1h-2zm4 0h1v1h-1zm-7 1h1v1h-1zm3 0h2v2h-2zm4 0h1v2h-1zm-13 1h3v1H9zm1 1h2v1h-2zm3 0h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zm-6 1h2v2h-2zm4 0h1v1h-1zm4 0h1v2h-1zm-12 1h3v1H2z" fill="#0f172a"/>
+                </svg>
+                <div style="font-size: 12px; font-weight: 700; color: #475569; text-align: center; text-transform: uppercase; margin-bottom: 6px;">SIMULATEUR QR CODE E-PAY</div>
+                <p style="font-size: 12px; color: #64748b; text-align: center; max-width: 280px; margin: 0;">Ce code simule un lien de paiement mobile rapide pour l'Aéroport d'Essaouira.</p>
+            </div>
+            
+            <button id="simulate-qr-btn" class="stripe-btn" style="background: linear-gradient(135deg, #10b981, #059669); border: none;" onclick="triggerQRSimulation()">
+                <i class="fa-solid fa-mobile-screen-button"></i> Simuler le Paiement (Simuler le paiement)
+            </button>
+        </div>
+    </div>
+    
+    <!-- Right panel: summary invoice details -->
+    <div class="panel-card" style="height: fit-content;">
+        <div class="panel-header" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 class="panel-title" style="font-size: 14px;"><i class="fa-solid fa-file-invoice-dollar text-primary"></i> Résumé de Facturation</h3>
+        </div>
+        
+        <div style="text-align: center; background: #f8fafc; padding: 14px; border-radius: 10px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Ticket ID</div>
+            <div style="font-size: 22px; font-weight: 900; color: #1e3a8a; letter-spacing: 1px;">TK-{{ "%06d"|format(parking_session_data.id) }}</div>
+            <div style="font-size: 13px; font-weight: 700; color: #b45309; background: #fffbeb; display: inline-block; padding: 2px 10px; border-radius: 20px; border: 1px solid #fde68a; margin-top: 6px;">
+                Matricule: {{ parking_session_data.matricule }}
+            </div>
+        </div>
+        
+        <div style="font-size: 13px; line-height: 2;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 4px 0;">
+                <span style="color: #64748b; font-weight: 500;">Tarif de base ({{ calc_hours }}h) :</span>
+                <span style="font-weight: 700; color: #1e293b;">{{ format_price(parking_price) }}</span>
+            </div>
+            
+            {% if services_total > 0 %}
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 4px 0;">
+                <span style="color: #64748b; font-weight: 500;">Services Optionnels :</span>
+                <span style="font-weight: 700; color: #1e293b;">+ {{ format_price(services_total) }}</span>
+            </div>
+            {% endif %}
+            
+            <div style="display: flex; justify-content: space-between; padding: 10px 0 0 0; margin-top: 6px;">
+                <span style="font-size: 14px; font-weight: 700; color: #0f172a;">Montant Total Dû :</span>
+                <span style="font-size: 18px; font-weight: 900; color: #dc2626;">{{ format_price(total_price) }}</span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+            <a href="/parking/exit?search=TK-{{ '%06d'|format(parking_session_data.id) }}" class="tab-btn" style="text-decoration: none; border-color: #cbd5e1; color: #475569;">
+                <i class="fa-solid fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- GATE/BARRIER OPENING ANIMATION OVERLAY -->
+<div id="gate-overlay" class="gate-overlay">
+    <div class="success-icon-animate">
+        <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <h2 style="font-size: 24px; font-weight: 800; color: #10b981; margin-bottom: 10px;">Paiement Réussi !</h2>
+    <p style="font-size: 15px; color: #94a3b8; margin-bottom: 40px; text-align: center; max-width: 320px;">Traitement validé. Ouverture de la barrière de sortie...</p>
+    
+    <div class="barrier-wrapper">
+        <div class="barrier-post"></div>
+        <div id="barrier-arm" class="barrier-arm"></div>
+    </div>
+    
+    <div style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10b981; padding: 12px 24px; border-radius: 30px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-plane-departure"></i> BARRIÈRE OUVERTE - BON VOYAGE !
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Load Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    // Tab switching logic
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.payment-tab-content').forEach(content => content.classList.remove('active'));
+        
+        // Add active classes
+        const clickedBtn = document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`) || event.currentTarget;
+        clickedBtn.classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+    
+    // Animate Barrier Opening
+    function showBarrierOpenAnimation(sessionId) {
+        const overlay = document.getElementById('gate-overlay');
+        overlay.style.display = 'flex';
+        
+        // Trigger arm rotation after short delay
+        setTimeout(() => {
+            overlay.classList.add('open');
+        }, 100);
+        
+        // Redirect to exit page with receipt modal after animation completes (3 seconds)
+        setTimeout(() => {
+            window.location.href = `/parking/exit?receipt_id=${sessionId}`;
+        }, 3200);
+    }
+    
+    // QR Simulation Handler
+    async function triggerQRSimulation() {
+        const btn = document.getElementById('simulate-qr-btn');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Simulation...`;
+        
+        try {
+            const response = await fetch('/api/confirm-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: "{{ parking_session_data.id }}",
+                    payment_method: "MOBILE",
+                    amount: "{{ total_price }}",
+                    payment_intent_id: "simulated_qr"
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showBarrierOpenAnimation("{{ parking_session_data.id }}");
+            } else {
+                alert("Erreur de simulation: " + data.message);
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-mobile-screen-button"></i> Simuler le Paiement`;
+            }
+        } catch (err) {
+            alert("Erreur de communication : " + err);
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-mobile-screen-button"></i> Simuler le Paiement`;
+        }
+    }
+
+    // ==========================================
+    //  Stripe Elements & Payment Request
+    // ==========================================
+    const publishableKey = "{{ publishable_key }}";
+    
+    // Check if key is placeholder or real
+    if (publishableKey === "pk_test_placeholder" || !publishableKey.startsWith('pk_')) {
+        console.warn("Using Stripe elements placeholder key. Simulating card success directly.");
+        
+        // In placeholder mode, mock the stripe form submission
+        const cardContainer = document.getElementById('card-element');
+        cardContainer.innerHTML = `
+            <div style="padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; margin-bottom: 12px;">
+                <input type="text" placeholder="Numéro de carte (4242 4242...)" style="width: 100%; border: none; outline: none; margin-bottom: 8px; font-size: 14px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" placeholder="MM/AA" style="width: 50%; border: none; outline: none; font-size: 14px;">
+                    <input type="text" placeholder="CVC" style="width: 50%; border: none; outline: none; font-size: 14px;">
+                </div>
+            </div>
+        `;
+
+        document.getElementById('payment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-card');
+            btn.disabled = true;
+            document.getElementById('button-text').style.display = 'none';
+            document.getElementById('spinner').style.display = 'inline-block';
+            
+            setTimeout(() => {
+                fetch('/api/confirm-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: "{{ parking_session_data.id }}",
+                        payment_method: "CARD",
+                        amount: "{{ total_price }}",
+                        payment_intent_id: "simulated_card_" + Date.now()
+                    })
+                }).then(res => res.json()).then(data => {
+                    if (data.success) {
+                        showBarrierOpenAnimation("{{ parking_session_data.id }}");
+                    } else {
+                        alert("Erreur : " + data.message);
+                        btn.disabled = false;
+                        document.getElementById('button-text').style.display = 'inline-block';
+                        document.getElementById('spinner').style.display = 'none';
+                    }
+                });
+            }, 1500);
+        });
+    } else {
+        // Real Stripe Integration
+        const stripe = Stripe(publishableKey);
+        let elements;
+        
+        async function initializeStripe() {
+            const response = await fetch('/api/create-payment-intent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: "{{ parking_session_data.id }}",
+                    amount: "{{ total_price }}"
+                })
+            });
+            const { clientSecret, error } = await response.json();
+            
+            if (error) {
+                document.getElementById('card-errors').innerText = "Erreur d'initialisation Stripe: " + error;
+                document.getElementById('card-errors').style.display = 'block';
+                document.getElementById('submit-card').disabled = true;
+                return;
+            }
+            
+            elements = stripe.elements({ clientSecret });
+            
+            const cardElement = elements.create('payment');
+            cardElement.mount('#card-element');
+            
+            document.getElementById('payment-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const btn = document.getElementById('submit-card');
+                btn.disabled = true;
+                document.getElementById('button-text').style.display = 'none';
+                document.getElementById('spinner').style.display = 'inline-block';
+                
+                const { error, paymentIntent } = await stripe.confirmPayment({
+                    elements,
+                    confirmParams: {
+                        return_url: window.location.origin + `/parking/exit?receipt_id={{ parking_session_data.id }}`,
+                    },
+                    redirect: 'if_required'
+                });
+                
+                if (error) {
+                    const errorDiv = document.getElementById('card-errors');
+                    errorDiv.innerText = error.message;
+                    errorDiv.style.display = 'block';
+                    btn.disabled = false;
+                    document.getElementById('button-text').style.display = 'inline-block';
+                    document.getElementById('spinner').style.display = 'none';
+                } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                    const confirmRes = await fetch('/api/confirm-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: "{{ parking_session_data.id }}",
+                            payment_method: "CARD",
+                            amount: "{{ total_price }}",
+                            payment_intent_id: paymentIntent.id
+                        })
+                    });
+                    const confirmData = await confirmRes.json();
+                    if (confirmData.success) {
+                        showBarrierOpenAnimation("{{ parking_session_data.id }}");
+                    } else {
+                        alert("Erreur de confirmation : " + confirmData.message);
+                    }
+                }
+            });
+            
+            // --- Payment Request Button Setup ---
+            const pr = stripe.paymentRequest({
+                country: 'MA',
+                currency: 'mad',
+                total: {
+                    label: 'Parking Aéroport Essaouira',
+                    amount: Math.round(parseFloat("{{ total_price }}") * 100),
+                },
+                requestPayerName: true,
+                requestPayerEmail: true,
+            });
+            
+            const result = await pr.canMakePayment();
+            if (result) {
+                document.getElementById('pr-not-available').style.display = 'none';
+                const prButton = elements.create('paymentRequestButton', { paymentRequest: pr });
+                prButton.mount('#payment-request-button');
+                
+                pr.on('paymentmethod', async (ev) => {
+                    const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(
+                        clientSecret,
+                        { payment_method: ev.paymentMethod.id },
+                        { handleActions: false }
+                    );
+                    
+                    if (confirmError) {
+                        ev.complete('fail');
+                        alert("Erreur Apple/Google Pay : " + confirmError.message);
+                    } else {
+                        ev.complete('success');
+                        const confirmRes = await fetch('/api/confirm-payment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: "{{ parking_session_data.id }}",
+                                payment_method: "MOBILE",
+                                amount: "{{ total_price }}",
+                                payment_intent_id: paymentIntent.id
+                            })
+                        });
+                        const confirmData = await confirmRes.json();
+                        if (confirmData.success) {
+                            showBarrierOpenAnimation("{{ parking_session_data.id }}");
+                        }
+                    }
+                });
+            } else {
+                console.log("Apple Pay / Google Pay not available on this device.");
+            }
+        }
+        
+        initializeStripe();
+    }
+</script>
+{% endblock %}

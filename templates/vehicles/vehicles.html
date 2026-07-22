@@ -1,0 +1,123 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">{{ t('vehicles') }}</h1>
+    <p style="font-size: 14px; color: #64748b;">Manage registered vehicles and owners list</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr;">
+    
+    <!-- Add Vehicle Form -->
+    <div class="panel-card" style="height: fit-content;">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-plus text-primary"></i> Enregistrer Véhicule</h3>
+        </div>
+        <form action="/vehicles" method="POST">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Immatriculation (Matricule)</label>
+                <input type="text" name="matricule" class="form-control" placeholder="12345-A-15" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Marque</label>
+                <select name="brand_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="">Sélectionner une marque...</option>
+                    {% for brand in brands %}
+                        <option value="{{ brand.id }}">{{ brand.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Couleur</label>
+                <select name="color_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="">Sélectionner une couleur...</option>
+                    {% for color in colors %}
+                        <option value="{{ color.id }}">{{ color.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Type de véhicule</label>
+                <select name="vehicle_type_id" required style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer;">
+                    <option value="">Sélectionner un type...</option>
+                    {% for vt in vehicle_types %}
+                        <option value="{{ vt.id }}">{{ vt.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Nom Propriétaire (Optionnel)</label>
+                <input type="text" name="owner_name" class="form-control" placeholder="M. Alami..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px;">Téléphone (Optionnel)</label>
+                <input type="text" name="phone" class="form-control" placeholder="0612345678" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; box-sizing: border-box;">
+            </div>
+
+            <button type="submit" class="login-btn" style="background-color: #2563eb; width: 100%;">
+                <i class="fa-solid fa-floppy-disk"></i> Enregistrer
+            </button>
+        </form>
+    </div>
+
+    <!-- Vehicles List Table -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <h3 class="panel-title"><i class="fa-solid fa-list text-primary"></i> Véhicules Enregistrés</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Matricule</th>
+                        <th>Type</th>
+                        <th>Marque</th>
+                        <th>Couleur</th>
+                        <th>Propriétaire</th>
+                        <th>Date Création</th>
+                        <th style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if vehicles %}
+                        {% for veh in vehicles %}
+                            <tr>
+                                <td style="font-weight: 700; color: #1e3a8a;">{{ veh.matricule }}</td>
+                                <td>{{ veh.type_name or 'N/A' }}</td>
+                                <td style="font-weight: 600;">{{ veh.brand_name or 'N/A' }}</td>
+                                <td>{{ veh.color_name or 'N/A' }}</td>
+                                <td>
+                                    {% if veh.owner_name %}
+                                        <div style="font-weight: 600; color: #0f172a;">{{ veh.owner_name }}</div>
+                                        <div style="font-size: 11px; color: #64748b;">{{ veh.phone or 'Aucun phone' }}</div>
+                                    {% else %}
+                                        <span style="color: #94a3b8;">Inconnu</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 12px; color: #64748b;">{{ veh.created_at }}</td>
+                                <td style="text-align: center;">
+                                    <a href="/vehicles/delete/{{ veh.id }}" class="btn-action text-danger" onclick="return confirm('Voulez-vous vraiment supprimer ce véhicule ?')" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; background-color: #fef2f2; color: #ef4444; text-decoration: none;">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #94a3b8; padding: 25px;">
+                                Aucun véhicule enregistré.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

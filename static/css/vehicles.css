@@ -1,0 +1,24 @@
+/* Custom Styling for Vehicle Forms */
+.form-control:focus, select:focus {
+    outline: none;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* Action button micro-animations */
+.btn-action {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-action:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+select {
+    background-color: #ffffff;
+    font-family: inherit;
+    font-size: 13.5px;
+    color: #334155;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
